@@ -5,8 +5,8 @@
        implicit none
 	integer,parameter:: n = 50    ! No. of beads
 	integer,parameter:: m = 256   ! No. of cell
-        integer,parameter:: s = n+1
-        double precision,parameter:: box = 46.0d0   !  Box length
+    integer,parameter:: s = n+1
+    double precision,parameter:: box = 46.0d0   !  Box length
 	double precision,parameter:: rcut= 1.50d0 
 	double precision,parameter:: k=120.0d0      !  Single cell spring constant
 	double precision,parameter:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
@@ -15,9 +15,10 @@
 	double precision,parameter:: rc_rep=0.18d0  ! Repulsion interaction cut-off
 	double precision,parameter:: k_adh=0.001d0   !  Adhesion interaction strength
 	double precision,parameter:: k_rep=1000.0d0 !  Adhesion interaction strength
-	double precision,parameter:: mean=0.0d0     !  Mean of the gaussoan white noise
-	double precision,parameter:: var=0.05d0      !  Variance of the gaussoan white noise
-	double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads	
+	double precision,parameter:: mean=0.0d0     !  Mean of the gaussian white noise
+	double precision,parameter:: var=0.05d0      !  Variance of the gaussian white noise
+	double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads
+    double precision:: tau_align ! Tau for Vicsek alignment
        end module parameters
 
 
@@ -26,7 +27,8 @@
        use parameters
  
        implicit none
-       double precision:: x1(m),y1(m),x(m,0:s),y(m,0:s),theta(m)
+       double precision:: x1(m),y1(m),x(m,0:s),y(m,0:s)
+       double precision:: mx(m,0:s),my(m,0:s) ! denotes motility unit vector for every bead
 	
        end module position_arrays
 
@@ -88,6 +90,7 @@
         call cpu_time(ti)
 	r=1.0d0
 	dt=0.001d0
+    tau_align=dt*10
 	jf=10050000  !! No. of Iterations
 	!jf=1
 	call initial(r)   
@@ -618,7 +621,9 @@ end do
 
        implicit none
        integer:: i,j,l,idum,j1
-       double precision:: c,dt,noise,tau  
+       double precision:: c,dt,noise,tau
+       double precision:: vx,vy,wz
+       double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
           
         c = 0.5d0       ! c is coeff. of viscous damping      
  
@@ -628,17 +633,28 @@ end do
          do i=1,n
 
 	     
-           x(l,i) = x(l,i) + (fx(l,i) + f_intx(l,i))*dt/c + Vo*(cos(theta(l)))*dt/c
-           y(l,i) = y(l,i) + (fy(l,i) + f_inty(l,i))*dt/c + Vo*(sin(theta(l)))*dt/c       
-
-         end do
-
+           vx = (fx(l,i) + f_intx(l,i))*dt/c + Vo*mx(l,i)*dt
+           vy = (fy(l,i) + f_inty(l,i))*dt/c + Vo*my(l,i)*dt       
+           x(l,i) = x(l,i) + vx
+           y(l,i) = y(l,i) + vy
+            
+            
             CALL SYSTEM_CLOCK(COUNT=idum)
 
             CALL gasdev(noise,idum,mean,var)
 
+            wz = (mx(l,i)*vy - my(l,i)*vx)/tau_align + noise
+            theta_x = -my(l,i)*wz*dt
+            theta_y = mx(l,i)*wz*dt
+            theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
+            
+            ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
+            mx(l,i) = ((1.0d0 - theta_sq_by_4)*mx(l,i) + theta_x)/(1.0d0 + theta_sq_by_4)
+            my(l,i) = ((1.0d0 - theta_sq_by_4)*my(l,i) + theta_y)/(1.0d0 + theta_sq_by_4)
+            
+            
 
-            theta(l) = theta(l) + noise*dsqrt(dt)
+         end do
 
       end do
 
@@ -682,7 +698,7 @@ end do
 
         implicit none
 
-        double precision :: pi,ran2
+        double precision :: pi,ran2,m_tmp,mx_tmp,my_tmp
         integer :: idum,i,l
 
          pi = 4.0d0*datan(1.0d0)
@@ -690,9 +706,13 @@ end do
         CALL SYSTEM_CLOCK(COUNT=idum)
          
         do l=1,m
-
-            theta(l) = pi*(2.0d0*ran2(idum) - 1.0d0) 
-
+            do i=1,n
+                mx_tmp = 2.0d0*ran2(idum) - 1.0d0
+                my_tmp = 2.0d0*ran2(idum) - 1.0d0
+                m_tmp = dsqrt(mx_tmp*mx_tmp + my_tmp*my_tmp)
+                mx(l,i)=mx_tmp/m_tmp
+                my(l,i)=my_tmp/m_tmp     
+            end do
         end do
 
         return
