@@ -3,7 +3,8 @@
        module parameters
 
        implicit none
-	integer,parameter:: n = 50    ! No. of beads
+	double precision, parameter::  pi = dacos(-1.0d0)
+    integer,parameter:: n = 50    ! No. of beads
 	integer,parameter:: m = 256   ! No. of cell
     integer,parameter:: s = n+1
     double precision,parameter:: box = 46.0d0   !  Box length
@@ -110,12 +111,8 @@
 	if(mod(j1,1).eq.0) then  !! Step to calculate all the coordinates w.r.t. System COM.
 	sys_xcm = 0.0d0
 	sys_ycm = 0.0d0
-	do l=1,M
-		do i=1,N
-			sys_xcm = sys_xcm + x(l,i)
-			sys_ycm = sys_ycm + y(l,i)
-		end do
-	end do
+			sys_xcm = sum(x)
+			sys_ycm = sum(y)
 	sys_xcm = sys_xcm/(M*N)
 	sys_ycm = sys_ycm/(M*N)
 	x = x - sys_xcm
@@ -490,19 +487,19 @@ subroutine initial(r)
 use position_arrays
  
 implicit none
-double precision:: a,b,a1,b1,g,r,dr,q,pi,theta1,ran2
-integer:: l,k1,i,t,idum
+double precision:: a,b,a1,b1,g,r,dr,q,theta1
+integer:: l,k1,i,t
+      DOUBLE PRECISION:: rands(2)
+
 
 q = 0.5d0*dsqrt(m*7.3d0)
 dr = 0.2d0
 t = 0
 
-CALL SYSTEM_CLOCK(COUNT=idum)
+        CALL RANDOM_NUMBER(rands)
 
-!call srand(653214)
-
-4   a = q*2.0d0*ran2(idum)
-    b = q*2.0d0*ran2(idum)
+4   a = q*2.0d0*rands(1)
+    b = q*2.0d0*rands(2)
 !4   a = q*2.0d0*rand(0)
 !    b = q*2.0d0*rand(0)
 
@@ -513,9 +510,10 @@ CALL SYSTEM_CLOCK(COUNT=idum)
 
 
 do l=2,m
+        CALL RANDOM_NUMBER(rands)
 
-5   a1 = q*2.0d0*ran2(idum)
-    b1 = q*2.0d0*ran2(idum)
+5   a1 = q*2.0d0*rands(1)
+    b1 = q*2.0d0*rands(2)
 !5   a1 = q*2.0d0*rand(0)
 !    b1 = q*2.0d0*rand(0)
 
@@ -537,15 +535,15 @@ do l=2,m
 
 end do
 
-       pi = 4.0d0*datan(1.0d0)
        theta1 = 0.0d0
        
   
      do l=1,m  
        do i=1,n
+        CALL RANDOM_NUMBER(rands)
         
-           x(l,i) = r*cos(theta1) + 0.01d0*(2.0d0*ran2(idum)-1.0d0) + x1(l)
-           y(l,i) = r*sin(theta1) + 0.01d0*(2.0d0*ran2(idum)-1.0d0) + y1(l)
+           x(l,i) = r*cos(theta1) + 0.01d0*(2.0d0*rands(1)-1.0d0) + x1(l)
+           y(l,i) = r*sin(theta1) + 0.01d0*(2.0d0*rands(2)-1.0d0) + y1(l)
            !x(l,i) = r*cos(theta1) + x1(l) !+ 0.01d0*(2.0d0*rand(0)-1.0d0) 
            !y(l,i) = r*sin(theta1) + y1(l) !+ 0.01d0*(2.0d0*rand(0)-1.0d0)  
            
@@ -571,18 +569,15 @@ end do
    
         ! boundary condition
 	
-	do l=1,m
-          x(l,0) = x(l,n)
-          y(l,0) = y(l,n)
-          x(l,n+1) = x(l,1)
-          y(l,n+1) = y(l,1)
-        end do
+          x(:,0) = x(:,n)
+          y(:,0) = y(:,n)
+          x(:,n+1) = x(:,1)
+          y(:,n+1) = y(:,1)
           
 
          
      
-  	  do l=1,m             ! loop for cell no.
-              do i=1,n         ! loop for beads in each cell
+  	  do concurrent (l=1:m, i=1:n)
 
                    dx1 = x(l,i-1)-x(l,i)
                    dy1 = y(l,i-1)-y(l,i)
@@ -605,7 +600,6 @@ end do
                    fy(l,i)=k*(l1-l0)*dy1/l1 - k*(l2-l0)*dy2/l2 + &  
                             0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
-               end do
 	  end do
 		 
 
@@ -620,30 +614,31 @@ end do
        use forces
 
        implicit none
-       integer:: i,j,l,idum,j1
-       double precision:: c,dt,noise,tau
+       integer:: i,j,l,j1
+       double precision:: c,dt,tau
        double precision:: vx,vy,wz
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
+       double precision :: noise(m,n), g(m*n)
+       interface
+        Subroutine gasdev(g,mean,variance) 
+            DOUBLE PRECISION,INTENT(IN)::variance,mean
+            DOUBLE PRECISION,INTENT(OUT)::g(:)
+        end subroutine gasdev
+       end interface
           
         c = 0.5d0       ! c is coeff. of viscous damping      
  
-       do l=1,m
+             CALL gasdev(g,mean,var)
+             noise=reshape(g, [m,n]) ! reshapes 1D array g into 2D
 
-
-         do i=1,n
-
-	     
+       do concurrent (l=1:m, i=1:n)
            vx = (fx(l,i) + f_intx(l,i))*dt/c + Vo*mx(l,i)*dt
            vy = (fy(l,i) + f_inty(l,i))*dt/c + Vo*my(l,i)*dt       
            x(l,i) = x(l,i) + vx
            y(l,i) = y(l,i) + vy
             
-            
-            CALL SYSTEM_CLOCK(COUNT=idum)
-
-            CALL gasdev(noise,idum,mean,var)
-
-            wz = (mx(l,i)*vy - my(l,i)*vx)/tau_align + noise
+      
+            wz = (mx(l,i)*vy - my(l,i)*vx)/tau_align + noise(l,i)
             theta_x = -my(l,i)*wz*dt
             theta_y = mx(l,i)*wz*dt
             theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
@@ -651,11 +646,6 @@ end do
             ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
             mx(l,i) = ((1.0d0 - theta_sq_by_4)*mx(l,i) + theta_x)/(1.0d0 + theta_sq_by_4)
             my(l,i) = ((1.0d0 - theta_sq_by_4)*my(l,i) + theta_y)/(1.0d0 + theta_sq_by_4)
-            
-            
-
-         end do
-
       end do
 
       return
@@ -669,7 +659,7 @@ end do
        use forces
 
        implicit none
-       integer:: i,j,l,idum,j1
+       integer:: i,j,l,j1
        double precision:: c,dt  
        
        c = 0.5d0       ! c is coeff. of viscous damping      
@@ -698,17 +688,16 @@ end do
 
         implicit none
 
-        double precision :: pi,ran2,m_tmp,mx_tmp,my_tmp
-        integer :: idum,i,l
-
-         pi = 4.0d0*datan(1.0d0)
-       !  idum = 564326
-        CALL SYSTEM_CLOCK(COUNT=idum)
-         
+        double precision :: m_tmp,mx_tmp,my_tmp
+        integer :: i,l
+        DOUBLE PRECISION:: rands(2)
+        
         do l=1,m
             do i=1,n
-                mx_tmp = 2.0d0*ran2(idum) - 1.0d0
-                my_tmp = 2.0d0*ran2(idum) - 1.0d0
+               CALL RANDOM_NUMBER(rands)
+
+                mx_tmp = 2.0d0*rands(1) - 1.0d0
+                my_tmp = 2.0d0*rands(2) - 1.0d0
                 m_tmp = dsqrt(mx_tmp*mx_tmp + my_tmp*my_tmp)
                 mx(l,i)=mx_tmp/m_tmp
                 my(l,i)=my_tmp/m_tmp     
@@ -720,70 +709,27 @@ end do
 
  
 !!!!!!!!/////// Gaussian random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
-
- Subroutine gasdev(g2,idum,mean,variance) 
-  !use numz
+! Polar rejection method (Knop[1969]) related to Box-Muller transform
+ Subroutine gasdev(g,mean,variance) 
   Implicit none
-      INTEGER,INTENT(INOUT)::idum
       DOUBLE PRECISION,INTENT(IN)::variance,mean
-      DOUBLE PRECISION,INTENT(OUT)::g2
-      DOUBLE PRECISION::ran2,g1
-      INTEGER:: iset
-      DOUBLE PRECISION:: fac,gset,rsq,v1,v2,ran1
-      SAVE iset,gset
-      DATA iset/0/
-    !  if (iset.eq.0) then
+      DOUBLE PRECISION,INTENT(OUT)::g(:)
+      DOUBLE PRECISION:: fac,rsq,v1,v2
+      DOUBLE PRECISION:: rands(2)
+      INTEGER:: i, size_g
+      
+      size_g=size(g)
+     
+     harvest_g_array: DO i=1,size_g,2
         DO
-        v1=2.0d0*ran2(idum)-1.0d0
-        v2=2.0d0*ran2(idum)-1.0d0
+        CALL RANDOM_NUMBER(rands)
+        v1=2.0d0*rands(1)-1.0d0
+        v2=2.0d0*rands(2)-1.0d0
         rsq=v1**2+v2**2
         if((rsq<1.0d0).AND.(rsq/=0.0d0))EXIT
         ENDDO
-        fac=variance*SQRT(-2.0d0*log(rsq)/(rsq))
-        g1=v1*fac+mean
-        g2=v2*fac+mean      
+        fac=variance*DSQRT(-2.0d0*dlog(rsq)/(rsq))
+        g(i)=v1*fac+mean
+        if(i/=size_g) g(i+1)=v2*fac+mean 
+     END DO harvest_g_array
       END subroutine gasdev
-
-
-!!!!/////// Uniform Random number generators////////////////////////////////////
-
-FUNCTION ran2(idum)
- ! USE numz
-  IMPLICIT NONE
-  DOUBLE PRECISION:: ran2
-  !INTEGER,INTENT(inout),OPTIONAL::idum
-  INTEGER,INTENT(inout)::idum
-  !INTEGER :: idum
-  INTEGER,PARAMETER::IM1=2147483563,IM2=2147483399,IMM1=IM1-1
-  INTEGER,PARAMETER::IA1=40014,IA2=40692,IQ1=53668
-  INTEGER,PARAMETER::IQ2=52774,IR1=12211,IR2=3791   
-  INTEGER,PARAMETER::NTAB=32,NDIV=1+IMM1/NTAB
-  DOUBLE PRECISION,PARAMETER::AM=1.0d0/IM1,EPS=1.2e-7,RNMX=1.0d0-EPS
-  INTEGER::idum2,j,k,iv(NTAB),iy
-  SAVE iv,iy,idum2
-  DATA idum2/123456789/, iv/NTAB*0/, iy/0/
-  IF (idum<0) THEN
-     idum=MAX(-idum,1)
-     idum2=idum
-      DO j=NTAB+8,1,-1
-         k=idum/IQ1
-         idum=IA1*(idum-k*IQ1)-k*IR1
-         IF (idum<0) idum=idum+IM1
-         IF (j.LE.NTAB) iv(j)=idum
-      ENDDO
-      iy=iv(1)
-   ENDIF
-   k=idum/IQ1
-   idum=IA1*(idum-k*IQ1)-k*IR1
-   IF (idum<0) idum=idum+IM1
-   k=idum2/IQ2
-   idum2=IA2*(idum2-k*IQ2)-k*IR2
-   IF (idum2<0) idum2=idum2+IM2
-   j=1+iy/NDIV
-   iy=iv(j)-idum2
-   iv(j)=idum
-   IF(iy.LT.1)iy=iy+IMM1
-   ran2=MIN(AM*iy,RNMX)
-   RETURN
- END FUNCTION ran2
-
