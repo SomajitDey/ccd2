@@ -251,12 +251,12 @@
                         y3(l,i) = y(l,i) - box*floor(y(l,i)/box)
 
 
-8			icell = 1 + int(x3(l,i) * celli) + int(y3(l,i) * celli) * w  !! determining the cell index for a particular bead
+			icell = 1 + int(x3(l,i) * celli) + int(y3(l,i) * celli) * w  !! determining the cell index for a particular bead
 
 			icell_memory(l,i) = icell
 			
 			
-10			listcell(icell,l)     = headcell(icell)     !! The next lower ring index in that cell(icell)
+			listcell(icell,l)     = headcell(icell)     !! The next lower ring index in that cell(icell)
 			listbead(l,i)         = headbead(icell,l)   !! The next lower bead index of a part of a ring(l) in a cell(icell) 
 			headbead(icell,l)     = i	            !! Highest bead index in the part of the ring(l) in a cell(icell)
 			headcell_dummy(icell) = l
@@ -273,22 +273,23 @@
 	
 	
  	!!*** Subroutine for the forces of interaction ***!!
+    ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
+    ! `ring_a` and `ring_c` denote any ring pair within neighbouring cells/grids
 	subroutine interaction(j1,frepx,frepy,dx,dy,r,icell,jcell,l)
 
 	use parameters
-        use position_arrays
+    use position_arrays
 	use forces
 	use map_arrays
 	use list_arrays
-       
-       
-        implicit none
-        integer:: i,j,j1,l,q
-        double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,ti,tf
+          
+    implicit none
+    integer:: i,j,j1,l,q
+    double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,ti,tf
 	integer:: icell,jcell,jcell0,nabor 
 	
-        	        f_intx=0.0d0
-        	        f_inty=0.0d0
+        	f_intx=0.0d0
+        	f_inty=0.0d0
 			frpx=0.0d0
 			frpy=0.0d0
 			fadx=0.0d0
@@ -297,26 +298,27 @@
         
         !! Loop Over All Cells !!
 
-	do icell=1,ncell
-			!write(*,*)'icell=',icell,'ncell=',ncell
+	grids: do concurrent (icell=1:ncell)
 
 			l=headcell(icell)  !! Highest ring index in a cell(icell)
 			
-50			if(l.ne.0) then
-				!write(*,*)'icell=',icell,'l(headcell(icell)=',l
+        ring_a: do	 ! For explanation of ring_a see above
+            if(l.eq.0) exit ring_a
 
 				i=headbead(icell,l) !! Highest bead index in the part of the ring(l) in a cell(icell)
 
-100				if(i.ne.0) then
-					!write(14,*) 'icell=',icell,'l(headcell(icell)=',l,'i(bead(icell,l)=',i
+			ring_a_beads: do	
+                if(i.eq.0) exit ring_a_beads
 
 					q=listcell(icell,l)  !! The next lower ring index after l-th ring in a cell(icell) 
 
-200					if((q.ne.0)) then !.and.(q.ne.l)) then
+            ring_b: do
+					if((q.eq.0)) exit ring_b
 					       
 						j=headbead(icell,q) !! The highest bead index in the q-th ring in a cell(icell) 
 
-300						if(j.ne.0) then
+                ring_b_beads: do
+						if(j.eq.0) exit ring_b_beads
 											
 							dx = x(q,j)-x(l,i)
 							dy = y(q,j)-y(l,i)
@@ -331,27 +333,15 @@
 
                       					if(r.lt.rc_rep) then
 
-				          			frepx = -k_rep*(rc_rep-r)*(dx)/r
-				          			!fadhx = k_adh*(rc_adh-r)*(dx)/r
+				          		frepx = -k_rep*(rc_rep-r)*(dx)/r
+				          			
 					  			frepy = -k_rep*(rc_rep-r)*(dy)/r
-				          			!fadhy = k_adh*(rc_adh-r)*(dy)/r
 
-				          			f_intx(l,i) = f_intx(l,i) + frepx !+ fadhx
-				          			f_intx(q,j) = f_intx(q,j) - frepx !- fadhx
+				          			f_intx(l,i) = f_intx(l,i) + frepx 
+				          			f_intx(q,j) = f_intx(q,j) - frepx 
 
-				          			f_inty(l,i) = f_inty(l,i) + frepy !+ fadhy 
-				          			f_inty(q,j) = f_inty(q,j) - frepy !- fadhy
-
-							! 	frpx(l,i) = frpx(l,i) + frepx
-							!	frpx(q,j) = frpx(q,j) - frepx
-							!	frpy(l,i) = frpy(l,i) + frepy
-							!	frpy(q,j) = frpy(q,j) - frepy
-
-							!	fadx(l,i) = fadx(l,i) + fadhx
-							!	fadx(q,j) = fadx(q,j) - fadhx
-							!	fady(l,i) = fady(l,i) + fadhy
-							!	fady(q,j) = fady(q,j) - fadhy
-
+				          			f_inty(l,i) = f_inty(l,i) + frepy 
+				          			f_inty(q,j) = f_inty(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
@@ -361,27 +351,20 @@
 								f_intx(l,i) = f_intx(l,i) + fadhx
 								f_intx(q,j) = f_intx(q,j) - fadhx
 
-						                f_inty(l,i) = f_inty(l,i) + fadhy 
+						        f_inty(l,i) = f_inty(l,i) + fadhy 
 								f_inty(q,j) = f_inty(q,j) - fadhy
-
 								
-								!fadx(l,i) = fadx(l,i) + fadhx
-								!fadx(q,j) = fadx(q,j) - fadhx
-								!fady(l,i) = fady(l,i) + fadhy
-								!fady(q,j) = fady(q,j) - fadhy
-
        							end if
 
 							j=listbead(q,j) !! the next lower bead index in the q-th ring for the same cell(icell)
-							goto 300
-						end if
+						end do ring_b_beads
 
 						q=listcell(icell,q) !! the next lower ring index in the same cell(icell)
-						goto 200
-					end if
-	                      !! Loop Over Neighbouring Cells !!
+					end do ring_b
 
-				!	if(ncell.lt.6) goto 700
+
+
+	                      !! Loop Over Neighbouring Cells !!
 
 					jcell0 = 4*(icell-1)     
 					
@@ -392,13 +375,18 @@
 
 						q=headcell(jcell)
 																	
-400						if(q.ne.0)then
+                ring_c: do
+						if(q.eq.0) exit ring_c
 						    
-                                                     if(q.eq.l) goto 600
+                                                     if(q.eq.l) then
+                                                        q=listcell(jcell,q) !!Considering the next ring in the neighbour cell
+                                                        cycle ring_c
+                                                     end if
 	
 							j=headbead(jcell,q)
 
-500							if(j.ne.0) then
+                    ring_c_beads: do
+							if(j.eq.0) exit ring_c_beads
 
 							dx = x(q,j)-x(l,i)
 							dy = y(q,j)-y(l,i)
@@ -414,26 +402,14 @@
                       					if(r.lt.rc_rep) then
 
 				          			frepx = -k_rep*(rc_rep-r)*(dx)/r
-				          			!fadhx = k_adh*(rc_adh-r)*(dx)/r
-					  			frepy = -k_rep*(rc_rep-r)*(dy)/r
-				          			!fadhy = k_adh*(rc_adh-r)*(dy)/r
+					  			    frepy = -k_rep*(rc_rep-r)*(dy)/r
 
-				          			f_intx(l,i) = f_intx(l,i) + frepx !+ fadhx
-				          			f_intx(q,j) = f_intx(q,j) - frepx !- fadhx
 
-				          			f_inty(l,i) = f_inty(l,i) + frepy !+ fadhy 
-				          			f_inty(q,j) = f_inty(q,j) - frepy !- fadhy
+				          			f_intx(l,i) = f_intx(l,i) + frepx 
+				          			f_intx(q,j) = f_intx(q,j) - frepx 
 
-							! 	frpx(l,i) = frpx(l,i) + frepx
-							!	frpx(q,j) = frpx(q,j) - frepx
-							!	frpy(l,i) = frpy(l,i) + frepy
-							!	frpy(q,j) = frpy(q,j) - frepy
-
-							!	fadx(l,i) = fadx(l,i) + fadhx
-							!	fadx(q,j) = fadx(q,j) - fadhx
-							!	fady(l,i) = fady(l,i) + fadhy
-							!	fady(q,j) = fady(q,j) - fadhy
-
+				          			f_inty(l,i) = f_inty(l,i) + frepy 
+				          			f_inty(q,j) = f_inty(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
@@ -443,41 +419,31 @@
 								f_intx(l,i) = f_intx(l,i) + fadhx
 								f_intx(q,j) = f_intx(q,j) - fadhx
 
-						                f_inty(l,i) = f_inty(l,i) + fadhy 
+						        f_inty(l,i) = f_inty(l,i) + fadhy 
 								f_inty(q,j) = f_inty(q,j) - fadhy
-
 								
-								!fadx(l,i) = fadx(l,i) + fadhx
-								!fadx(q,j) = fadx(q,j) - fadhx
-								!fady(l,i) = fady(l,i) + fadhy
-								!fady(q,j) = fady(q,j) - fadhy
-
        							end if
 
 
 								j=listbead(q,j)!! Considering the next bead of the current ring in the neighbour cell
-								goto 500
-							end if
+							end do ring_c_beads
 
-600							q=listcell(jcell,q) !!Considering the next ring in the neighbour cell
+							q=listcell(jcell,q) !!Considering the next ring in the neighbour cell
 
 
-							goto 400
-						end if
+						end do ring_c
 					end do
 
 
-700					i=listbead(l,i)  !! Considering the next bead of the current ring in the current cell
-					goto 100
-				end if
+					i=listbead(l,i)  !! Considering the next bead of the current ring in the current cell
+				end do ring_a_beads
 
 				l=listcell(icell,l)  !!Considering the next ring in the current cell  	
-				goto 50
-			end if
-	end do		
+			end do ring_a
+	end do grids		
 					
 	return
-        end                
+        end subroutine interaction            
 
 	
 
@@ -496,28 +462,27 @@ q = 0.5d0*dsqrt(m*7.3d0)
 dr = 0.2d0
 t = 0
 
+
+    do
         CALL RANDOM_NUMBER(rands)
-
-4   a = q*2.0d0*rands(1)
+    a = q*2.0d0*rands(1)
     b = q*2.0d0*rands(2)
-!4   a = q*2.0d0*rand(0)
-!    b = q*2.0d0*rand(0)
+    if((a.ge.(r+0.05d0)).and.(b.ge.(r+0.05d0))) exit
+    end do
 
-   if((a.lt.(r+0.05d0)).or.(b.lt.(r+0.05d0))) goto 4
 
    x1(1) = a
    y1(1) = b
 
 
 do l=2,m
+        lcell: do
+    do
         CALL RANDOM_NUMBER(rands)
-
-5   a1 = q*2.0d0*rands(1)
+    a1 = q*2.0d0*rands(1)
     b1 = q*2.0d0*rands(2)
-!5   a1 = q*2.0d0*rand(0)
-!    b1 = q*2.0d0*rand(0)
-
-    if((a1.lt.(r+0.05d0)).or.(b1.lt.(r+0.05d0))) goto 5
+    if((a1.ge.(r+0.05d0)).and.(b1.ge.(r+0.05d0))) exit
+    end do
 
    x1(l) = a1
    y1(l) = b1
@@ -526,13 +491,10 @@ do l=2,m
 
        g = dsqrt((x1(l)-x1(k1))**2 +(y1(l)-y1(k1))**2)
 
-       if (g.lt.(2*r+dr)) then
-      !  t=t+1
-      !  write(*,*)t
-        goto 5
-       end if
+       if (g.lt.(2*r+dr)) cycle lcell
     end do
-
+        exit lcell
+        end do lcell
 end do
 
        theta1 = 0.0d0
@@ -544,9 +506,6 @@ end do
         
            x(l,i) = r*cos(theta1) + 0.01d0*(2.0d0*rands(1)-1.0d0) + x1(l)
            y(l,i) = r*sin(theta1) + 0.01d0*(2.0d0*rands(2)-1.0d0) + y1(l)
-           !x(l,i) = r*cos(theta1) + x1(l) !+ 0.01d0*(2.0d0*rand(0)-1.0d0) 
-           !y(l,i) = r*sin(theta1) + y1(l) !+ 0.01d0*(2.0d0*rand(0)-1.0d0)  
-           
            theta1 = theta1 + 2.0d0*pi/n
                                                          
        end do
