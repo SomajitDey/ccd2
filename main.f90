@@ -3,23 +3,30 @@
        module parameters
 
        implicit none
-	double precision, parameter::  pi = dacos(-1.0d0)
-    integer,parameter:: n = 50    ! No. of beads
-	integer,parameter:: m = 256   ! No. of cell
-    integer,parameter:: s = n+1
-    double precision,parameter:: box = 46.0d0   !  Box length
-	double precision,parameter:: rcut= 1.50d0 
-	double precision,parameter:: k=120.0d0      !  Single cell spring constant
-	double precision,parameter:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
-	double precision,parameter:: l0=0.1d0       !  Single cell natural spring-length
-	double precision,parameter:: rc_adh=0.28d0  ! Adhesion interaction cut-off
-	double precision,parameter:: rc_rep=0.18d0  ! Repulsion interaction cut-off
-	double precision,parameter:: k_adh=0.001d0   !  Adhesion interaction strength
-	double precision,parameter:: k_rep=1000.0d0 !  Adhesion interaction strength
-	double precision,parameter:: mean=0.0d0     !  Mean of the gaussian white noise
-	double precision,parameter:: var=0.05d0      !  Variance of the gaussian white noise
-	double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads
-    double precision:: tau_align ! Tau for Vicsek alignment
+        double precision, parameter::  pi = dacos(-1.0d0)
+        integer,parameter:: n = 50    ! No. of beads
+        integer,parameter:: m = 256   ! No. of cell
+        integer,parameter:: s = n+1
+        double precision,parameter:: box = 46.0d0   !  Box length
+        double precision,parameter:: rcut= 1.50d0 
+        double precision,parameter:: k=120.0d0      !  Single cell spring constant
+        double precision,parameter:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
+        double precision,parameter:: l0=0.1d0       !  Single cell natural spring-length
+        double precision,parameter:: rc_adh=0.28d0  ! Adhesion interaction cut-off
+        double precision,parameter:: rc_rep=0.18d0  ! Repulsion interaction cut-off
+        double precision,parameter:: k_adh=0.001d0   !  Adhesion interaction strength
+        double precision,parameter:: k_rep=1000.0d0 !  Adhesion interaction strength
+        double precision,parameter:: mean=0.0d0     !  Mean of the gaussian white noise
+        double precision,parameter:: var=0.05d0      !  Variance of the gaussian white noise
+        double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads
+        double precision:: tau_align ! Tau for Vicsek alignment
+        integer :: traj_fd, final_fd ! File Descriptors
+        character(len=*), parameter :: traj_fname='traj.bin', final_fname='final.config' ! File Names
+interface
+    subroutine timestamp(cputime,wallclock)
+        real, intent(out), optional :: cputime,wallclock
+    end subroutine timestamp
+end interface        
        end module parameters
 
 
@@ -77,18 +84,11 @@
 	integer:: icell,jcell,l,i,j1,jf,q,j
 	double precision:: r,cell,celli,dt,x2(m,n),y2(m,n),frepx,frepy,dx,dy,rint,h,sys_xcm,sys_ycm
     real:: cpusec,wcsec
-	Character(len=len('With_Noise/Coords_shift_wrt_SysCom/Adhesions/Diff_noise_var/Var0.2/Kadh20/Ensmbls_for_alpha2/')) &
-	& ::filepath
 
-	filepath = 'With_Noise/Coords_shift_wrt_SysCom/Adhesions/Diff_noise_var/vo0.05_var0.05/'
-	
-	! open(14,file='Grid1.5_P2.5/Fin_5_10_4_highadh9_2.0_dt0.005_krep100_cnf_5.dat',status='unknown')
-	 open(16,file=trim(adjustl(filepath))//'adh0.001_1.5_Noise(var0.05_v_0.05)P2.5_Kspr120_ite_1E7_cnf_2.dat',&
-                   & status='unknown',position='append')
-         !open(18,file=trim(adjustl(filepath))//'adh0.01_1.5_Noise(var0.5_v_0.2)P4.0_Kspr120_ite_1E7_cnf_1_Fin.dat',&
-        ! & status='unknown')
+	 ! traj_fd saves trajectory file descriptor. final_fd saves final configuration file descriptor
+	 open(newunit=traj_fd,file=traj_fname, status='replace', access='sequential', form='unformatted', asynchronous='yes')
+     open(newunit=final_fd,file=final_fname, access='sequential', form='formatted',status='replace', asynchronous='yes')
 
-    call timestamp()
 	r=1.0d0
 	dt=0.001d0
     tau_align=dt*10
@@ -98,7 +98,7 @@
           do l=1,M  
             do i=1,N
            
-               write(16,*)l,i,x(l,i),y(l,i)
+               write(traj_fd, asynchronous='yes')0,l,i,x(l,i),y(l,i)
                 
             end do
           end do
@@ -106,18 +106,22 @@
 	call maps
     call initial_angle
 	!write(*,*)'No. of boxes',ncell
+
+    call timestamp()
+
 	do j1=1,jf
 
-	if(mod(j1,1).eq.0) then  !! Step to calculate all the coordinates w.r.t. System COM.
-	sys_xcm = 0.0d0
-	sys_ycm = 0.0d0
-			sys_xcm = sum(x)
-			sys_ycm = sum(y)
-	sys_xcm = sys_xcm/(M*N)
-	sys_ycm = sys_ycm/(M*N)
-	x = x - sys_xcm
- 	y = y - sys_ycm
-	end if
+! TBD: Static COM doesnt make sense in case of collective migration
+!	if(mod(j1,1).eq.0) then  !! Step to calculate all the coordinates w.r.t. System COM.
+!	sys_xcm = 0.0d0
+!	sys_ycm = 0.0d0
+!			sys_xcm = sum(x)
+!			sys_ycm = sum(y)
+!	sys_xcm = sys_xcm/(M*N)
+!	sys_ycm = sys_ycm/(M*N)
+!	x = x - sys_xcm
+!	y = y - sys_ycm
+!	end if
 
     call links(j1,jf)
 	call force(j1)
@@ -132,7 +136,7 @@
           do l=1,M  
             do i=1,N
            
-               write(16,*)j1-50000,l,i,x(l,i),y(l,i)
+               write(traj_fd, asynchronous='yes')j1-50000,l,i,x(l,i),y(l,i)
                 
             end do
           end do
@@ -148,7 +152,7 @@
           do l=1,M  
             do i=1,N
            
-               write(16,*)1,l,i,x(l,i),y(l,i)
+               write(traj_fd, asynchronous='yes')1,l,i,x(l,i),y(l,i)
              
             end do
           end do
@@ -161,15 +165,18 @@
        if(j1.eq.jf) then
           do l=1,M  
             do i=1,N        
-				   !x(l,i) = x(l,i) - box*floor(x(l,i)/box)
-				   !y(l,i) = y(l,i) - box*floor(y(l,i)/box)
-                !write(18,*)j1,l,i,x(l,i),y(l,i)	              
+				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
+				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
+                write(final_fd,*,asynchronous='yes')j1,l,i,x(l,i),y(l,i)	              
             end do
           end do
        end if
 	
 	end do
 
+    close(traj_fd)
+    close(final_fd)
+    
     call timestamp(cpusec,wcsec)
     write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
 
