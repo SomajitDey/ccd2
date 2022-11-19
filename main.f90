@@ -49,9 +49,9 @@
        use parameters
 
        implicit none
-	integer,parameter:: w=int(box/rcut), ncell=w*w
-	integer,parameter:: mapsiz=4*ncell
-	integer:: map(mapsiz)
+	   integer,parameter:: w=int(box/rcut), ncell=w*w
+	   integer,parameter:: mapsiz=4*ncell
+	   integer:: map(mapsiz)
  
        end module map_arrays
 
@@ -61,12 +61,12 @@
        use map_arrays
 
        implicit none
-	integer:: headcell(ncell),headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n)
+	   integer:: headcell(ncell),headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n)
  
        end module list_arrays
 
 
-        program many_cell       ! Main Program Starts
+    program many_cell       ! Main Program Starts
 
 	use parameters
 	use position_arrays
@@ -75,7 +75,8 @@
 	use list_arrays
 
 	integer:: icell,jcell,l,i,j1,jf,q,j
-	double precision:: r,cell,celli,dt,x2(m,n),y2(m,n),ti,tf,frepx,frepy,dx,dy,rint,h,sys_xcm,sys_ycm
+	double precision:: r,cell,celli,dt,x2(m,n),y2(m,n),frepx,frepy,dx,dy,rint,h,sys_xcm,sys_ycm
+    real:: cpusec,wcsec
 	Character(len=len('With_Noise/Coords_shift_wrt_SysCom/Adhesions/Diff_noise_var/Var0.2/Kadh20/Ensmbls_for_alpha2/')) &
 	& ::filepath
 
@@ -87,13 +88,12 @@
          !open(18,file=trim(adjustl(filepath))//'adh0.01_1.5_Noise(var0.5_v_0.2)P4.0_Kspr120_ite_1E7_cnf_1_Fin.dat',&
         ! & status='unknown')
 
-
-        call cpu_time(ti)
+    call timestamp()
 	r=1.0d0
 	dt=0.001d0
     tau_align=dt*10
 	jf=10050000  !! No. of Iterations
-	!jf=1
+
 	call initial(r)   
           do l=1,M  
             do i=1,N
@@ -104,7 +104,7 @@
           end do
       
 	call maps
-        call initial_angle
+    call initial_angle
 	!write(*,*)'No. of boxes',ncell
 	do j1=1,jf
 
@@ -119,7 +119,7 @@
  	y = y - sys_ycm
 	end if
 
-        call links(j1,jf)
+    call links(j1,jf)
 	call force(j1)
 	call interaction(j1,frepx,frepy,dx,dy,rint,icell,jcell,l)
 
@@ -170,11 +170,10 @@
 	
 	end do
 
-	call cpu_time(tf)
+    call timestamp(cpusec,wcsec)
+    write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
 
-	write(*,*)'time=',tf-ti
-
-        end program many_cell       ! Main Program Ends
+    end program many_cell       ! Main Program Ends
 
 
 	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
@@ -692,3 +691,50 @@ end do
         if(i/=size_g) g(i+1)=v2*fac+mean 
      END DO harvest_g_array
       END subroutine gasdev
+
+
+
+! Brief: This subroutine outputs the time spent in secs (cpu & wall clock) since its previous invocation
+! Note: All arguments are optional and of type real
+! Note: CPU usage = cpu x 100 % / wclock
+! Note: #Threads = nint(cpu/wclock)
+
+subroutine timestamp(cpu, wclock)
+    implicit none
+    real, intent(out), optional :: cpu, wclock
+    integer, save :: sys_clock_count_prev
+    integer :: sys_clock_count, sys_clock_max, sys_clock_rate, sys_clock_diff
+    real, save :: cpu_sec_prev
+    real :: cpu_sec
+    integer :: call_count = 1 ! implicit save attribute
+
+    call cpu_time(cpu_sec)
+    
+    if (present(cpu)) then
+        if (call_count == 1) then
+            cpu = 0.0
+        else
+            cpu = cpu_sec - cpu_sec_prev
+         end if
+    end if
+    cpu_sec_prev = cpu_sec
+
+    call system_clock(sys_clock_count, sys_clock_rate, sys_clock_max)
+
+    if (present(wclock)) then
+        if (call_count == 1) then
+            sys_clock_diff = 0
+        else
+            sys_clock_diff = sys_clock_count - sys_clock_count_prev
+        end if
+        
+        if (sys_clock_diff < 0) then
+            wclock = real(sys_clock_diff + sys_clock_max) / sys_clock_rate
+        else
+            wclock = real(sys_clock_diff) / sys_clock_rate
+        end if
+    end if
+    sys_clock_count_prev = sys_clock_count
+     
+    call_count = call_count + 1
+end subroutine timestamp
