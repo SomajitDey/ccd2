@@ -9,6 +9,7 @@
         integer,parameter:: s = n+1
         double precision,parameter:: box = 46.0d0   !  Box length
         double precision,parameter:: rcut= 1.50d0 
+        double precision,parameter:: radius= 1.0d0   ! Initial cell radius
         double precision,parameter:: k=120.0d0      !  Single cell spring constant
         double precision,parameter:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
         double precision,parameter:: l0=0.1d0       !  Single cell natural spring-length
@@ -19,7 +20,10 @@
         double precision,parameter:: mean=0.0d0     !  Mean of the gaussian white noise
         double precision,parameter:: var=0.05d0      !  Variance of the gaussian white noise
         double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads
-        double precision:: tau_align ! Tau for Vicsek alignment
+        double precision,parameter:: c = 0.5d0         ! c is coeff. of viscous damping      
+        double precision,parameter:: dt=0.001d0   ! Integration timestep
+        double precision,parameter:: tau_align=dt*10 ! Tau for Vicsek alignment
+        integer:: jf=10050000  !! No. of Iterations
         integer :: traj_fd, final_fd ! File Descriptors
         character(len=*), parameter :: traj_fname='traj.bin', final_fname='final.config' ! File Names
 interface
@@ -81,20 +85,15 @@ end interface
 	use map_arrays
 	use list_arrays
 
-	integer:: icell,jcell,l,i,j1,jf,q,j
-	double precision:: r,cell,celli,dt,x2(m,n),y2(m,n),frepx,frepy,dx,dy,rint,h,sys_xcm,sys_ycm
+	integer:: l,i,j1
+	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
 
 	 ! traj_fd saves trajectory file descriptor. final_fd saves final configuration file descriptor
 	 open(newunit=traj_fd,file=traj_fname, status='replace', access='sequential', form='unformatted', asynchronous='yes')
      open(newunit=final_fd,file=final_fname, access='sequential', form='formatted',status='replace', asynchronous='yes')
 
-	r=1.0d0
-	dt=0.001d0
-    tau_align=dt*10
-	jf=10050000  !! No. of Iterations
-
-	call initial(r)   
+	call initial   
           do l=1,M  
             do i=1,N
            
@@ -105,8 +104,6 @@ end interface
       
 	call maps
     call initial_angle
-	!write(*,*)'No. of boxes',ncell
-
     call timestamp()
 
 	do j1=1,jf
@@ -123,13 +120,13 @@ end interface
 !	y = y - sys_ycm
 !	end if
 
-    call links(j1,jf)
-	call force(j1)
-	call interaction(j1,frepx,frepy,dx,dy,rint,icell,jcell,l)
+    call links
+	call force
+	call interaction()
 
 	if(j1.gt.50000) then
 							
-	call move_noise(dt)
+	call move_noise
 
         if(mod(j1,5000).eq.0) then
 
@@ -145,7 +142,7 @@ end interface
 
 	else
 
-	call move_deterministic(dt)
+	call move_deterministic
 
         if(j1.eq.50000) then
 
@@ -217,14 +214,14 @@ end interface
 
 
 	!!*** Subroutine to make linked lists & head of chain arrays ***!!
-	subroutine links(j1,jf) 
+	subroutine links
 
 	use position_arrays
 	use list_arrays
 	use map_arrays	
 
 	implicit none
-	integer:: j1,jf,icell,l,i,headcell_dummy(ncell)
+	integer:: icell,l,i,headcell_dummy(ncell)
 	double precision:: cell,celli,x3(m,n),y3(m,n),delta
 	
    	!! Zero Head Of Chain Array & List Array !!
@@ -281,7 +278,7 @@ end interface
  	!!*** Subroutine for the forces of interaction ***!!
     ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
     ! `ring_a` and `ring_c` denote any ring pair within neighbouring cells/grids
-	subroutine interaction(j1,frepx,frepy,dx,dy,r,icell,jcell,l)
+	subroutine interaction()
 
 	use parameters
     use position_arrays
@@ -290,7 +287,7 @@ end interface
 	use list_arrays
           
     implicit none
-    integer:: i,j,j1,l,q
+    integer:: i,j,l,q
     double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,ti,tf
 	integer:: icell,jcell,jcell0,nabor 
 	
@@ -454,12 +451,12 @@ end interface
 	
 
 !!! Subroutine for random initial configurations
-subroutine initial(r)
+subroutine initial
 
 use position_arrays
  
 implicit none
-double precision:: a,b,a1,b1,g,r,dr,q,theta1
+double precision:: a,b,a1,b1,g,dr,q,theta1
 integer:: l,k1,i,t
       DOUBLE PRECISION:: rands(2)
 
@@ -473,7 +470,7 @@ t = 0
         CALL RANDOM_NUMBER(rands)
     a = q*2.0d0*rands(1)
     b = q*2.0d0*rands(2)
-    if((a.ge.(r+0.05d0)).and.(b.ge.(r+0.05d0))) exit
+    if((a.ge.(radius+0.05d0)).and.(b.ge.(radius+0.05d0))) exit
     end do
 
 
@@ -487,7 +484,7 @@ do l=2,m
         CALL RANDOM_NUMBER(rands)
     a1 = q*2.0d0*rands(1)
     b1 = q*2.0d0*rands(2)
-    if((a1.ge.(r+0.05d0)).and.(b1.ge.(r+0.05d0))) exit
+    if((a1.ge.(radius+0.05d0)).and.(b1.ge.(radius+0.05d0))) exit
     end do
 
    x1(l) = a1
@@ -497,7 +494,7 @@ do l=2,m
 
        g = dsqrt((x1(l)-x1(k1))**2 +(y1(l)-y1(k1))**2)
 
-       if (g.lt.(2*r+dr)) cycle lcell
+       if (g.lt.(2*radius+dr)) cycle lcell
     end do
         exit lcell
         end do lcell
@@ -510,8 +507,8 @@ end do
        do i=1,n
         CALL RANDOM_NUMBER(rands)
         
-           x(l,i) = r*cos(theta1) + 0.01d0*(2.0d0*rands(1)-1.0d0) + x1(l)
-           y(l,i) = r*sin(theta1) + 0.01d0*(2.0d0*rands(2)-1.0d0) + y1(l)
+           x(l,i) = radius*cos(theta1) + 0.01d0*(2.0d0*rands(1)-1.0d0) + x1(l)
+           y(l,i) = radius*sin(theta1) + 0.01d0*(2.0d0*rands(2)-1.0d0) + y1(l)
            theta1 = theta1 + 2.0d0*pi/n
                                                          
        end do
@@ -522,14 +519,14 @@ end do
 
 
 !! Subroutine for force calculation in a single cell 
-	subroutine force(j1)
+	subroutine force
 
 	use parameters	
 	use position_arrays
 	use forces
 
 	implicit none
-	integer:: i,j,l,j1
+	integer:: i,j,l
         double precision::l1,l2,dx1,dx2,dy1,dy2
    
         ! boundary condition
@@ -573,14 +570,14 @@ end do
 
 
 !! Subroutine for the movement step in time using Euler-Maruyama algo ( including noise)
-       subroutine move_noise(dt)
+       subroutine move_noise
 
        use position_arrays
        use forces
 
        implicit none
-       integer:: i,j,l,j1
-       double precision:: c,dt,tau
+       integer:: i,j,l
+       double precision:: tau
        double precision:: vx,vy,wz
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
        double precision :: noise(m,n), g(m*n)
@@ -591,7 +588,6 @@ end do
         end subroutine gasdev
        end interface
           
-        c = 0.5d0       ! c is coeff. of viscous damping      
  
              CALL gasdev(g,mean,var)
              noise=reshape(g, [m,n]) ! reshapes 1D array g into 2D
@@ -618,17 +614,14 @@ end do
 
 
 !! Subroutine for the movement step in time using Euler algo (No noise)
-      subroutine move_deterministic(dt)
+      subroutine move_deterministic
 
        use position_arrays
        use forces
 
        implicit none
-       integer:: i,j,l,j1
-       double precision:: c,dt  
-       
-       c = 0.5d0       ! c is coeff. of viscous damping      
-      
+       integer:: i,j,l
+             
        do l=1,m
 
 
