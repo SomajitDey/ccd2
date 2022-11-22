@@ -1,0 +1,9 @@
+&params ! This is the start statement
+
+! key = value
+! key = value
+Vo = 0.0
+jf = 100000
+
+/ ! This is the end statement
+

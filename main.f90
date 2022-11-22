@@ -8,13 +8,15 @@ module parameters
     double precision, protected:: rc_rep=0.18d0  ! Repulsion interaction cut-off
     double precision, protected:: k_adh=0.001d0   !  Adhesion interaction strength
     double precision, protected:: k_rep=1000.0d0 !  Adhesion interaction strength
-    double precision, protected:: mean=0.0d0     !  Mean of the gaussian white noise
+    double precision, parameter:: mean=0.0d0     !  Mean of the gaussian white noise
     double precision, protected:: var=0.05d0      !  Variance of the gaussian white noise
     double precision, protected:: Vo=0.05d0       !  Self propulsion of the beads
     double precision, protected:: c = 0.5d0         ! c is coeff. of viscous damping      
     double precision, protected:: dt=0.001d0   ! Integration timestep
     integer, protected:: tau_align=10 ! Tau for Vicsek alignment in multiples of dt
     integer, protected:: jf=10050000  !! No. of Iterations
+
+    namelist /params/ dt, jf, Vo, k_adh, tau_align, var
 
     ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
     integer,parameter:: n = 50    ! No. of beads
@@ -23,6 +25,22 @@ module parameters
     double precision,parameter:: box = 46.0d0   !  Box length
     double precision,parameter:: rcut= 1.50d0 
     double precision,parameter:: radius= 1.0d0   ! Initial cell radius
+    integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
+    integer, parameter:: status_dump_int=100 ! Status file dump interval
+
+    contains
+    
+    subroutine assign_params(fname)
+        character(len=*), intent(in) :: fname
+        integer:: fd
+
+        open(newunit=fd,file=fname, access='sequential', form='formatted', status='old', action='read', err=100)
+            read(fd, nml=params)
+        close(fd)
+        
+        return
+100  error stop 'Problem with parameter input file : '//fname
+    end subroutine assign_params
 end module parameters
 
 module files
@@ -31,18 +49,17 @@ module files
     public
     ! File Names
     character(len=*), parameter :: traj_fname='traj.bin'
-    character(len=*), parameter :: final_fname='final.config'
+    character(len=*), parameter :: final_fname='final.xy'
     character(len=*), parameter :: params_fname='params.in'
     character(len=*), parameter :: status_fname='status.live'
     ! File Descriptors
-    integer :: traj_fd, final_fd, params_fd, status_fd
+    integer :: traj_fd, final_fd, status_fd
     
     contains
     
     subroutine close_files()
         close(traj_fd, status='keep')
         close(final_fd, status='keep')
-        close(params_fd, status='keep')
         close(status_fd, status='delete')
     end subroutine close_files
     
@@ -118,105 +135,79 @@ end module shared
        end module list_arrays
 
 
-    program many_cell       ! Main Program Starts
-
+program many_cell       ! Main Program Starts
 	use shared
 	use position_arrays
 	use forces
 	use map_arrays
 	use list_arrays
 
-	integer:: l,i,j1
+    implicit none
+
+	integer:: l,i,j1,reclen
 	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
+    logical:: another_run_is_live
 
-	 ! traj_fd saves trajectory file descriptor. final_fd saves final configuration file descriptor
-	 open(newunit=traj_fd,file=traj_fname, status='replace', access='sequential', form='unformatted', asynchronous='yes')
-     open(newunit=final_fd,file=final_fname, access='sequential', form='formatted',status='replace', asynchronous='yes')
+    call assign_params(params_fname)
 
-	call initial   
-          do l=1,M  
-            do i=1,N
-           
-               write(traj_fd, asynchronous='yes')0,l,i,x(l,i),y(l,i)
-                
-            end do
-          end do
-      
+    ! Check if another run is live and Open status file to manifest live status.
+    ! This has to be done before the run changes any state / writes anything to memory.
+    inquire(file=status_fname, exist=another_run_is_live)
+    if(another_run_is_live) call err_stop('Another run is going on')
+    open(newunit=status_fd,file=status_fname, access='sequential', form='formatted',status='new', &
+        asynchronous='yes', action='write')
+
+    write(status_fd,*,asynchronous='yes') jf/status_dump_int
+
+    ! Open trajectory file
+	inquire(iolength=reclen) j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
+    open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', status='replace', &
+        asynchronous='yes', action='write')
+
+    ! Initialize/Pre-run setup
+    call initial      
 	call maps
     call initial_angle
     call timestamp()
 
-	do j1=1,jf
-
-! TBD: Static COM doesnt make sense in case of collective migration
-!	if(mod(j1,1).eq.0) then  !! Step to calculate all the coordinates w.r.t. System COM.
-!	sys_xcm = 0.0d0
-!	sys_ycm = 0.0d0
-!			sys_xcm = sum(x)
-!			sys_ycm = sum(y)
-!	sys_xcm = sys_xcm/(M*N)
-!	sys_ycm = sys_ycm/(M*N)
-!	x = x - sys_xcm
-!	y = y - sys_ycm
-!	end if
+	timeseries: do j1=1,jf
 
     call links
 	call force
 	call interaction()
-
-	if(j1.gt.50000) then
 							
 	call move_noise
 
-        if(mod(j1,5000).eq.0) then
+        traj_dump: if(mod(j1,traj_dump_int).eq.0) then
+            write(traj_fd, asynchronous='yes', rec=j1/traj_dump_int + 1) &
+                j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
+        end if traj_dump
 
-          do l=1,M  
-            do i=1,N
-           
-               write(traj_fd, asynchronous='yes')j1-50000,l,i,x(l,i),y(l,i)
-                
-            end do
-          end do
-        end if
+        status_dump: if(mod(j1,status_dump_int).eq.0) then
+            write(status_fd,*,asynchronous='yes')
+        end if status_dump	
+	end do timeseries
 
-
-	else
-
-	call move_deterministic
-
-        if(j1.eq.50000) then
-
-          do l=1,M  
-            do i=1,N
-           
-               write(traj_fd, asynchronous='yes')1,l,i,x(l,i),y(l,i)
-             
-            end do
-          end do
-        end if
-
-
-	end if
-
-
-       if(j1.eq.jf) then
-          do l=1,M  
+        ! Open final config file
+        open(newunit=final_fd, file=final_fname, access='sequential', form='formatted',status='replace', &
+            asynchronous='yes', action='write')
+          final_dump: do l=1,M
+            write(final_fd,*,asynchronous='yes') '#Cell:', l
             do i=1,N        
 				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
 				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
-                write(final_fd,*,asynchronous='yes')j1,l,i,x(l,i),y(l,i)	              
+                write(final_fd,*,asynchronous='yes') x(l,i),y(l,i)
             end do
-          end do
-       end if
-	
-	end do
+            write(final_fd,*,asynchronous='yes') '#End_Cell:', l
+            write(final_fd,*,asynchronous='yes')
+          end do final_dump
 
     call close_files()
     call timestamp(cpusec,wcsec)
     write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
 
-    end program many_cell       ! Main Program Ends
+end program many_cell       ! Main Program Ends
 
 
 	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
@@ -645,32 +636,6 @@ end do
             ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
             mx(l,i) = ((1.0d0 - theta_sq_by_4)*mx(l,i) + theta_x)/(1.0d0 + theta_sq_by_4)
             my(l,i) = ((1.0d0 - theta_sq_by_4)*my(l,i) + theta_y)/(1.0d0 + theta_sq_by_4)
-      end do
-
-      return
-      end
-
-
-!! Subroutine for the movement step in time using Euler algo (No noise)
-      subroutine move_deterministic
-
-       use position_arrays
-       use forces
-
-       implicit none
-       integer:: i,j,l
-             
-       do l=1,m
-
-
-         do i=1,n
-
-            x(l,i) = x(l,i) + (fx(l,i) + f_intx(l,i))*dt/c
-            y(l,i) = y(l,i) + (fy(l,i) + f_inty(l,i))*dt/c
-      
-
-         end do
-
       end do
 
       return

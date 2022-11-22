@@ -1,7 +1,7 @@
 # Collective Cell Dynamics (ccd)
 
 FC=ifort
-FF= -O3 -qopenmp
+FF= -O3
 EXE=ccd.exe
 
 .PHONY : all clean
