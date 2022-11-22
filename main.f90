@@ -1,42 +1,83 @@
+module parameters
+    implicit none
+    public
+    double precision, protected:: k=120.0d0      !  Single cell spring constant
+    double precision, protected:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
+    double precision, protected:: l0=0.1d0       !  Single cell natural spring-length
+    double precision, protected:: rc_adh=0.28d0  ! Adhesion interaction cut-off
+    double precision, protected:: rc_rep=0.18d0  ! Repulsion interaction cut-off
+    double precision, protected:: k_adh=0.001d0   !  Adhesion interaction strength
+    double precision, protected:: k_rep=1000.0d0 !  Adhesion interaction strength
+    double precision, protected:: mean=0.0d0     !  Mean of the gaussian white noise
+    double precision, protected:: var=0.05d0      !  Variance of the gaussian white noise
+    double precision, protected:: Vo=0.05d0       !  Self propulsion of the beads
+    double precision, protected:: c = 0.5d0         ! c is coeff. of viscous damping      
+    double precision, protected:: dt=0.001d0   ! Integration timestep
+    integer, protected:: tau_align=10 ! Tau for Vicsek alignment in multiples of dt
+    integer, protected:: jf=10050000  !! No. of Iterations
 
+    ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
+    integer,parameter:: n = 50    ! No. of beads
+    integer,parameter:: m = 256   ! No. of cell
+    integer,parameter:: s = n+1
+    double precision,parameter:: box = 46.0d0   !  Box length
+    double precision,parameter:: rcut= 1.50d0 
+    double precision,parameter:: radius= 1.0d0   ! Initial cell radius
+end module parameters
 
-       module parameters
+module files
+    use iso_fortran_env, only: err_fd => error_unit
+    implicit none
+    public
+    ! File Names
+    character(len=*), parameter :: traj_fname='traj.bin'
+    character(len=*), parameter :: final_fname='final.config'
+    character(len=*), parameter :: params_fname='params.in'
+    character(len=*), parameter :: status_fname='status.live'
+    ! File Descriptors
+    integer :: traj_fd, final_fd, params_fd, status_fd
+    
+    contains
+    
+    subroutine close_files()
+        close(traj_fd, status='keep')
+        close(final_fd, status='keep')
+        close(params_fd, status='keep')
+        close(status_fd, status='delete')
+    end subroutine close_files
+    
+    subroutine log_this(msg)
+        character(len=*), intent(in) :: msg
+        character(len=8) :: curr_date
+        character(len=10) :: curr_time
+        call date_and_time(date=curr_date, time=curr_time)
+        write(err_fd,*) curr_date, '-', curr_time, ':', msg
+    end subroutine log_this
+    
+    subroutine err_stop(msg)
+        character(len=*), intent(in) :: msg
+        call log_this('ERROR:'//msg)
+        call close_files
+        error stop
+    end subroutine err_stop
+end module files
 
-       implicit none
-        double precision, parameter::  pi = dacos(-1.0d0)
-        integer,parameter:: n = 50    ! No. of beads
-        integer,parameter:: m = 256   ! No. of cell
-        integer,parameter:: s = n+1
-        double precision,parameter:: box = 46.0d0   !  Box length
-        double precision,parameter:: rcut= 1.50d0 
-        double precision,parameter:: radius= 1.0d0   ! Initial cell radius
-        double precision,parameter:: k=120.0d0      !  Single cell spring constant
-        double precision,parameter:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
-        double precision,parameter:: l0=0.1d0       !  Single cell natural spring-length
-        double precision,parameter:: rc_adh=0.28d0  ! Adhesion interaction cut-off
-        double precision,parameter:: rc_rep=0.18d0  ! Repulsion interaction cut-off
-        double precision,parameter:: k_adh=0.001d0   !  Adhesion interaction strength
-        double precision,parameter:: k_rep=1000.0d0 !  Adhesion interaction strength
-        double precision,parameter:: mean=0.0d0     !  Mean of the gaussian white noise
-        double precision,parameter:: var=0.05d0      !  Variance of the gaussian white noise
-        double precision,parameter:: Vo=0.05d0       !  Self propulsion of the beads
-        double precision,parameter:: c = 0.5d0         ! c is coeff. of viscous damping      
-        double precision,parameter:: dt=0.001d0   ! Integration timestep
-        double precision,parameter:: tau_align=dt*10 ! Tau for Vicsek alignment
-        integer:: jf=10050000  !! No. of Iterations
-        integer :: traj_fd, final_fd ! File Descriptors
-        character(len=*), parameter :: traj_fname='traj.bin', final_fname='final.config' ! File Names
-interface
-    subroutine timestamp(cputime,wallclock)
-        real, intent(out), optional :: cputime,wallclock
-    end subroutine timestamp
-end interface        
-       end module parameters
-
+module shared
+    use parameters
+    use files
+    implicit none
+    public
+    double precision, parameter::  pi = dacos(-1.0d0)
+    interface
+        subroutine timestamp(cputime,wallclock)
+            real, intent(out), optional :: cputime,wallclock
+        end subroutine timestamp
+    end interface
+end module shared
 
        module position_arrays
 
-       use parameters
+       use shared
  
        implicit none
        double precision:: x1(m),y1(m),x(m,0:s),y(m,0:s)
@@ -47,7 +88,7 @@ end interface
 
        module forces
          
-       use parameters
+       use shared
 
        implicit none
        double precision:: fx(m,n),fy(m,n),f_intx(m,n),f_inty(m,n),frpx(m,n),frpy(m,n),fadx(m,n),fady(m,n)
@@ -57,7 +98,7 @@ end interface
 
        module map_arrays
          
-       use parameters
+       use shared
 
        implicit none
 	   integer,parameter:: w=int(box/rcut), ncell=w*w
@@ -79,7 +120,7 @@ end interface
 
     program many_cell       ! Main Program Starts
 
-	use parameters
+	use shared
 	use position_arrays
 	use forces
 	use map_arrays
@@ -171,9 +212,7 @@ end interface
 	
 	end do
 
-    close(traj_fd)
-    close(final_fd)
-    
+    call close_files()
     call timestamp(cpusec,wcsec)
     write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
 
@@ -280,7 +319,7 @@ end interface
     ! `ring_a` and `ring_c` denote any ring pair within neighbouring cells/grids
 	subroutine interaction()
 
-	use parameters
+	use shared
     use position_arrays
 	use forces
 	use map_arrays
@@ -521,7 +560,7 @@ end do
 !! Subroutine for force calculation in a single cell 
 	subroutine force
 
-	use parameters	
+	use shared	
 	use position_arrays
 	use forces
 
@@ -577,7 +616,6 @@ end do
 
        implicit none
        integer:: i,j,l
-       double precision:: tau
        double precision:: vx,vy,wz
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
        double precision :: noise(m,n), g(m*n)
@@ -599,7 +637,7 @@ end do
            y(l,i) = y(l,i) + vy
             
       
-            wz = (mx(l,i)*vy - my(l,i)*vx)/tau_align + noise(l,i)
+            wz = (mx(l,i)*vy - my(l,i)*vx)/(tau_align*dt) + noise(l,i)
             theta_x = -my(l,i)*wz*dt
             theta_y = mx(l,i)*wz*dt
             theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
