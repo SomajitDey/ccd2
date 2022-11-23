@@ -1,6 +1,6 @@
 # Collective Cell Dynamics (ccd)
 
-FC=ifort
+FC=gfortran
 FF= -O3
 EXE=ccd.exe
 

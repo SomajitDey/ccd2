@@ -1,0 +1,5 @@
+#! /usr/bin/env bash
+# Brief: This script outputs line in given fortran code that has width > 120 cols.
+# This is basically a check for compatibility with the prescribed style guide.
+# Synopsis: <this> <file.f90>
+sed -n '/\(.\)\{120\}/p' "${1}"

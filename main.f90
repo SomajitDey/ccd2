@@ -68,7 +68,8 @@ module files
         character(len=8) :: curr_date
         character(len=10) :: curr_time
         call date_and_time(date=curr_date, time=curr_time)
-        write(err_fd,*) curr_date, '-', curr_time, ':', msg
+        write(err_fd,*) curr_date(7:8), '-', curr_date(5:6), '-', curr_date(1:4), '  ',&
+            curr_time(1:2), ':', curr_time(3:4), ':', curr_time(5:6),' => ', msg
     end subroutine log_this
     
     subroutine err_stop(msg)
@@ -150,6 +151,8 @@ program many_cell       ! Main Program Starts
     logical:: another_run_is_live
 
     call assign_params(params_fname)
+    call log_this('Run parameters read in')
+    write(*,nml=params) ! Dump all params on STDOUT
 
     ! Check if another run is live and Open status file to manifest live status.
     ! This has to be done before the run changes any state / writes anything to memory.
@@ -159,18 +162,23 @@ program many_cell       ! Main Program Starts
         asynchronous='yes', action='write')
 
     write(status_fd,*,asynchronous='yes') jf/status_dump_int
+    flush(status_fd) 
+    ! This doesn't guarantee data would be written to disk, but warrants it would be available to other processes
 
     ! Open trajectory file
+    call log_this('Initiating trajectory file: '//traj_fname)
 	inquire(iolength=reclen) j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
     open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', status='replace', &
         asynchronous='yes', action='write')
 
     ! Initialize/Pre-run setup
+    call log_this('Pre-run setups...')
     call initial      
 	call maps
     call initial_angle
     call timestamp()
-
+    
+    call log_this('Starting the main run')
 	timeseries: do j1=1,jf
 
     call links
@@ -186,9 +194,11 @@ program many_cell       ! Main Program Starts
 
         status_dump: if(mod(j1,status_dump_int).eq.0) then
             write(status_fd,*,asynchronous='yes')
+            flush(status_fd)
         end if status_dump	
 	end do timeseries
 
+    call log_this('Run complete...writing final config: '//final_fname)
         ! Open final config file
         open(newunit=final_fd, file=final_fname, access='sequential', form='formatted',status='replace', &
             asynchronous='yes', action='write')
@@ -206,7 +216,7 @@ program many_cell       ! Main Program Starts
     call close_files()
     call timestamp(cpusec,wcsec)
     write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
-
+    call log_this('Done')
 end program many_cell       ! Main Program Ends
 
 
@@ -412,7 +422,8 @@ end program many_cell       ! Main Program Ends
 						if(q.eq.0) exit ring_c
 						    
                                                      if(q.eq.l) then
-                                                        q=listcell(jcell,q) !!Considering the next ring in the neighbour cell
+                                                        !!Considering the next ring in the neighbour cell
+                                                        q=listcell(jcell,q)
                                                         cycle ring_c
                                                      end if
 	
