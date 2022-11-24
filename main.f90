@@ -109,7 +109,7 @@ end module shared
        use shared
 
        implicit none
-       double precision:: fx(m,n),fy(m,n),f_intx(m,n),f_inty(m,n),frpx(m,n),frpy(m,n),fadx(m,n),fady(m,n)
+       double precision:: fx(m,n),fy(m,n),f_intx(m,n),f_inty(m,n),f_rpx(m,n),f_rpy(m,n),f_adx(m,n),f_ady(m,n)
      
        end module forces
 
@@ -153,6 +153,8 @@ program many_cell       ! Main Program Starts
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
+
+    write(*,*)'Parameters used:'
     write(*,nml=params) ! Dump all params on STDOUT
 
     ! Check if another run is live and Open status file to manifest live status.
@@ -168,7 +170,7 @@ program many_cell       ! Main Program Starts
 
     ! Open trajectory file
     call log_this('Initiating trajectory file: '//traj_fname)
-	inquire(iolength=reclen) j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
+	inquire(iolength=reclen) j1, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
     open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', status='replace', &
         asynchronous='yes', action='write')
 
@@ -191,7 +193,7 @@ program many_cell       ! Main Program Starts
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
              recnum = j1/traj_dump_int + 1
              write(traj_fd, asynchronous='yes', rec=recnum) &
-                j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
+                j1, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
              write(buffer,'(i0)') recnum
              call log_this('Trajectory_dumped:record_number='//trim(buffer))
         end if traj_dump
@@ -219,7 +221,11 @@ program many_cell       ! Main Program Starts
 
     call close_files()
     call timestamp(cpusec,wcsec)
+
+    write(*,*)
+    write(*,*) 'Performance stats:'
     write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
+
     call log_this('Done')
 end program many_cell       ! Main Program Ends
 
@@ -337,10 +343,10 @@ end program many_cell       ! Main Program Ends
 	
         	f_intx=0.0d0
         	f_inty=0.0d0
-			frpx=0.0d0
-			frpy=0.0d0
-			fadx=0.0d0
-			fady=0.0d0
+			f_rpx=0.0d0
+			f_rpy=0.0d0
+			f_adx=0.0d0
+			f_ady=0.0d0
               
         
         !! Loop Over All Cells !!
@@ -384,22 +390,22 @@ end program many_cell       ! Main Program Ends
 				          			
 					  			frepy = -k_rep*(rc_rep-r)*(dy)/r
 
-				          			f_intx(l,i) = f_intx(l,i) + frepx 
-				          			f_intx(q,j) = f_intx(q,j) - frepx 
+				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
+				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
 
-				          			f_inty(l,i) = f_inty(l,i) + frepy 
-				          			f_inty(q,j) = f_inty(q,j) - frepy 
+				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
+				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
 								fadhx = k_adh*(rc_adh-r)*(dx)/r
 								fadhy = k_adh*(rc_adh-r)*(dy)/r
 
-								f_intx(l,i) = f_intx(l,i) + fadhx
-								f_intx(q,j) = f_intx(q,j) - fadhx
+								f_adx(l,i) = f_adx(l,i) + fadhx
+								f_adx(q,j) = f_adx(q,j) - fadhx
 
-						        f_inty(l,i) = f_inty(l,i) + fadhy 
-								f_inty(q,j) = f_inty(q,j) - fadhy
+						        f_ady(l,i) = f_ady(l,i) + fadhy 
+								f_ady(q,j) = f_ady(q,j) - fadhy
 								
        							end if
 
@@ -453,22 +459,22 @@ end program many_cell       ! Main Program Ends
 					  			    frepy = -k_rep*(rc_rep-r)*(dy)/r
 
 
-				          			f_intx(l,i) = f_intx(l,i) + frepx 
-				          			f_intx(q,j) = f_intx(q,j) - frepx 
+				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
+				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
 
-				          			f_inty(l,i) = f_inty(l,i) + frepy 
-				          			f_inty(q,j) = f_inty(q,j) - frepy 
+				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
+				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
 								fadhx = k_adh*(rc_adh-r)*(dx)/r
 								fadhy = k_adh*(rc_adh-r)*(dy)/r
 
-								f_intx(l,i) = f_intx(l,i) + fadhx
-								f_intx(q,j) = f_intx(q,j) - fadhx
+								f_adx(l,i) = f_adx(l,i) + fadhx
+								f_adx(q,j) = f_adx(q,j) - fadhx
 
-						        f_inty(l,i) = f_inty(l,i) + fadhy 
-								f_inty(q,j) = f_inty(q,j) - fadhy
+						        f_ady(l,i) = f_ady(l,i) + fadhy 
+								f_ady(q,j) = f_ady(q,j) - fadhy
 								
        							end if
 
@@ -489,7 +495,10 @@ end program many_cell       ! Main Program Ends
 				l=listcell(icell,l)  !!Considering the next ring in the current cell  	
 			end do ring_a
 	end do grids		
-					
+	
+    f_intx = f_adx + f_rpx
+    f_inty = f_ady + f_rpy
+    
 	return
         end subroutine interaction            
 
