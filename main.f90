@@ -338,7 +338,7 @@ end program many_cell       ! Main Program Ends
           
     implicit none
     integer:: i,j,l,q
-    double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,ti,tf
+    double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor
 	integer:: icell,jcell,jcell0,nabor 
 	
         	f_intx=0.0d0
@@ -379,16 +379,12 @@ end program many_cell       ! Main Program Ends
 							dy = dy - box*nint(dy/box)					        
 							r = dsqrt(dx*dx + dy*dy)
 							
-							frepx=0.0d0
-							frepy=0.0d0
-							fadhx=0.0d0
-							fadhy=0.0d0
 
                       					if(r.lt.rc_rep) then
 
-				          		frepx = -k_rep*(rc_rep-r)*(dx)/r
-				          			
-					  			frepy = -k_rep*(rc_rep-r)*(dy)/r
+				          		factor = (r-rc_rep)/r
+				          		frepx = factor*dx
+					  			frepy = factor*dy
 
 				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
 				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
@@ -398,8 +394,9 @@ end program many_cell       ! Main Program Ends
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
-								fadhx = k_adh*(rc_adh-r)*(dx)/r
-								fadhy = k_adh*(rc_adh-r)*(dy)/r
+                                factor = (rc_adh-r)/r
+								fadhx = factor*dx
+								fadhy = factor*dy
 
 								f_adx(l,i) = f_adx(l,i) + fadhx
 								f_adx(q,j) = f_adx(q,j) - fadhx
@@ -448,15 +445,12 @@ end program many_cell       ! Main Program Ends
 							dy = dy - box*nint(dy/box)					        
 							r = dsqrt(dx*dx + dy*dy)
 							
-							frepx=0.0d0
-							frepy=0.0d0
-							fadhx=0.0d0
-							fadhy=0.0d0
 
                       					if(r.lt.rc_rep) then
 
-				          			frepx = -k_rep*(rc_rep-r)*(dx)/r
-					  			    frepy = -k_rep*(rc_rep-r)*(dy)/r
+				          		factor = (r-rc_rep)/r
+				          		frepx = factor*dx
+					  			frepy = factor*dy
 
 
 				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
@@ -467,8 +461,9 @@ end program many_cell       ! Main Program Ends
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
 
-								fadhx = k_adh*(rc_adh-r)*(dx)/r
-								fadhy = k_adh*(rc_adh-r)*(dy)/r
+                                factor = (rc_adh-r)/r
+								fadhx = factor*dx
+								fadhy = factor*dy
 
 								f_adx(l,i) = f_adx(l,i) + fadhx
 								f_adx(q,j) = f_adx(q,j) - fadhx
@@ -496,6 +491,11 @@ end program many_cell       ! Main Program Ends
 			end do ring_a
 	end do grids		
 	
+    f_adx = k_adh*f_adx
+    f_ady = k_adh*f_ady
+    f_rpx = k_rep*f_rpx
+    f_rpy = k_rep*f_rpy
+    
     f_intx = f_adx + f_rpx
     f_inty = f_ady + f_rpy
     
