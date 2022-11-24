@@ -27,6 +27,7 @@ module parameters
     double precision,parameter:: radius= 1.0d0   ! Initial cell radius
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
+    integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval
 
     contains
     
@@ -52,8 +53,9 @@ module files
     character(len=*), parameter :: final_fname='final.xy'
     character(len=*), parameter :: params_fname='params.in'
     character(len=*), parameter :: status_fname='status.live'
+    character(len=*), parameter :: cpt_fname='state.cpt'
     ! File Descriptors
-    integer :: traj_fd, final_fd, status_fd
+    integer :: traj_fd, final_fd, status_fd, cpt_fd
     
     contains
     
@@ -145,11 +147,12 @@ program many_cell       ! Main Program Starts
 
     implicit none
 
-	integer:: l,i,j1,reclen,recnum
+	integer:: l,i,j1,reclen,recnum,seeds_size
 	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
     logical:: another_run_is_live
     character(len=10):: buffer  ! Internal file
+    integer, dimension(:), allocatable :: prng_seeds
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
@@ -179,6 +182,10 @@ program many_cell       ! Main Program Starts
     call initial      
 	call maps
     call initial_angle
+
+    call random_seed(size = seeds_size)
+    allocate(prng_seeds(seeds_size))
+    
     call timestamp()
     
     call log_this('Starting the main run')
@@ -194,8 +201,26 @@ program many_cell       ! Main Program Starts
              recnum = j1/traj_dump_int + 1
              write(traj_fd, asynchronous='yes', rec=recnum) &
                 j1, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
-             write(buffer,'(i0)') recnum
-             call log_this('Trajectory_dumped:record_number='//trim(buffer))
+
+            cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
+                ! Complete trajectory-file dumps so far and flush output buffer
+                wait(traj_fd)
+                flush(traj_fd)
+
+                ! Dumping to .cpt.tmp instead of *.cpt for now
+                open(newunit=cpt_fd,file='.cpt.tmp', access='sequential', form='unformatted', &
+                    status='replace', action='write')
+                    call random_seed(get = prng_seeds)
+                    write(cpt_fd) prng_seeds ! Saves current state of the PRNG. To be `put=` in `random_seeds` call...
+                    write(cpt_fd) x,y,mx,my ! Saves current state of the physical system
+                    write(cpt_fd) recnum ! Last record number of trajectory file, as of now
+                close(cpt_fd)
+                ! Atomically moving .cpt.tmp to *.cpt now
+                call execute_command_line('mv '//'.cpt.tmp '//cpt_fname, wait=.false.)
+
+                write(buffer,'(i0)') j1
+                call log_this('Created checkpoint @ timestep = '//trim(buffer))
+             end if cpt_dump
         end if traj_dump
 
         status_dump: if(mod(j1,status_dump_int).eq.0) then

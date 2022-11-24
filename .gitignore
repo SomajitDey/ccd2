@@ -1,1 +1,6 @@
 *.exe
+*.bin
+*.in
+*.live
+*.xy
+*.cpt
