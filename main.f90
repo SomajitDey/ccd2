@@ -35,7 +35,7 @@ module parameters
         integer:: fd
 
         open(newunit=fd,file=fname, access='sequential', form='formatted', status='old', action='read', err=100)
-            read(fd, nml=params)
+            read(fd, nml=params, err=100, end=100)
         close(fd)
         
         return
@@ -145,10 +145,11 @@ program many_cell       ! Main Program Starts
 
     implicit none
 
-	integer:: l,i,j1,reclen
+	integer:: l,i,j1,reclen,recnum
 	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
     logical:: another_run_is_live
+    character(len=10):: buffer  ! Internal file
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
@@ -179,7 +180,7 @@ program many_cell       ! Main Program Starts
     call timestamp()
     
     call log_this('Starting the main run')
-	timeseries: do j1=1,jf
+	timeseries: do j1=0,jf
 
     call links
 	call force
@@ -188,8 +189,11 @@ program many_cell       ! Main Program Starts
 	call move_noise
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
-            write(traj_fd, asynchronous='yes', rec=j1/traj_dump_int + 1) &
+             recnum = j1/traj_dump_int + 1
+             write(traj_fd, asynchronous='yes', rec=recnum) &
                 j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
+             write(buffer,*) recnum
+             call log_this('Trajectory_dumped:record_number='//trim(adjustl(buffer)))               
         end if traj_dump
 
         status_dump: if(mod(j1,status_dump_int).eq.0) then
