@@ -192,8 +192,8 @@ program many_cell       ! Main Program Starts
              recnum = j1/traj_dump_int + 1
              write(traj_fd, asynchronous='yes', rec=recnum) &
                 j1, x, y, mx, my, fx, fy, frpx, frpy, fadx, fady
-             write(buffer,*) recnum
-             call log_this('Trajectory_dumped:record_number='//trim(adjustl(buffer)))               
+             write(buffer,'(i0)') recnum
+             call log_this('Trajectory_dumped:record_number='//trim(buffer))
         end if traj_dump
 
         status_dump: if(mod(j1,status_dump_int).eq.0) then
