@@ -194,8 +194,6 @@ program many_cell       ! Main Program Starts
     call links
 	call force
 	call interaction()
-							
-	call move_noise
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
              recnum = j1/traj_dump_int + 1
@@ -227,6 +225,9 @@ program many_cell       ! Main Program Starts
             write(status_fd,*,asynchronous='yes')
             flush(status_fd)
         end if status_dump	
+
+	call move_noise
+
 	end do timeseries
 
     call log_this('Run complete...writing final config: '//final_fname)
