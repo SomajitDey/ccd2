@@ -21,7 +21,6 @@ module parameters
     ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
     integer,parameter:: n = 50    ! No. of beads
     integer,parameter:: m = 256   ! No. of cell
-    integer,parameter:: s = n+1
     double precision,parameter:: box = 46.0d0   !  Box length
     double precision,parameter:: rcut= 1.50d0 
     double precision,parameter:: radius= 1.0d0   ! Initial cell radius
@@ -43,6 +42,36 @@ module parameters
 100  error stop 'Problem with parameter input file : '//fname
     end subroutine assign_params
 end module parameters
+
+module state_vars
+    implicit none
+    public
+    double precision, dimension(:,:), allocatable :: x,y ! Position coordinates of every bead
+    double precision, dimension(:,:), allocatable :: mx,my ! Motility unit vector for every bead
+    double precision, dimension(:,:), allocatable :: fx,fy ! Intracellular force
+    double precision, dimension(:,:), allocatable :: f_rpx,f_rpy ! Intercellular steric repulsion / volume exclusion
+    double precision, dimension(:,:), allocatable :: f_adx,f_ady ! Intercellular attraction / adhesion
+    integer, dimension(:), allocatable :: prng_seeds ! Stores the state of the P(seudo) R(andom) N(um) G(enerator)
+
+    contains
+
+    integer function allocate_array_stat(cellnum, beadnum)
+        integer, intent(in) :: cellnum, beadnum
+        integer :: seeds_size
+
+        call random_seed(size = seeds_size)
+        
+        allocate( &
+            x(1:cellnum, 0:beadnum+1), y(1:cellnum, 0:beadnum+1), &
+            mx(1:cellnum, 1:beadnum), my(1:cellnum, 1:beadnum), &
+            fx(1:cellnum, 1:beadnum), fy(1:cellnum, 1:beadnum), &
+            f_rpx(1:cellnum, 1:beadnum), f_rpy(1:cellnum, 1:beadnum), &
+            f_adx(1:cellnum, 1:beadnum), f_ady(1:cellnum, 1:beadnum), &
+            prng_seeds(seeds_size), &
+            stat=allocate_array_stat )
+        ! 0:beadnum+1 is to expand a circular array into linear one later in force
+    end function allocate_array_stat
+end module state_vars
 
 module files
     use iso_fortran_env, only: err_fd => error_unit
@@ -84,6 +113,7 @@ end module files
 
 module shared
     use parameters
+    use state_vars
     use files
     implicit none
     public
@@ -94,27 +124,6 @@ module shared
         end subroutine timestamp
     end interface
 end module shared
-
-       module position_arrays
-
-       use shared
- 
-       implicit none
-       double precision:: x1(m),y1(m),x(m,0:s),y(m,0:s)
-       double precision:: mx(m,0:s),my(m,0:s) ! denotes motility unit vector for every bead
-	
-       end module position_arrays
-
-
-       module forces
-         
-       use shared
-
-       implicit none
-       double precision:: fx(m,n),fy(m,n),f_intx(m,n),f_inty(m,n),f_rpx(m,n),f_rpy(m,n),f_adx(m,n),f_ady(m,n)
-     
-       end module forces
-
 
        module map_arrays
          
@@ -130,6 +139,7 @@ end module shared
 
        module list_arrays
          
+       use shared
        use map_arrays
 
        implicit none
@@ -140,25 +150,25 @@ end module shared
 
 program many_cell       ! Main Program Starts
 	use shared
-	use position_arrays
-	use forces
 	use map_arrays
 	use list_arrays
 
     implicit none
 
-	integer:: l,i,j1,reclen,recnum,seeds_size
+	integer:: l,i,j1,reclen,recnum
 	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
     logical:: another_run_is_live
     character(len=10):: buffer  ! Internal file
-    integer, dimension(:), allocatable :: prng_seeds
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
 
     write(*,*)'Parameters used:'
     write(*,nml=params) ! Dump all params on STDOUT
+
+    call log_this('Creating all necessary arrays (such as positions) @ heap')
+    if(allocate_array_stat(m,n) /= 0) call err_stop('Array allocation in heap encountered some problem.') 
 
     ! Check if another run is live and Open status file to manifest live status.
     ! This has to be done before the run changes any state / writes anything to memory.
@@ -182,10 +192,7 @@ program many_cell       ! Main Program Starts
     call initial      
 	call maps
     call initial_angle
-
-    call random_seed(size = seeds_size)
-    allocate(prng_seeds(seeds_size))
-    
+   
     call timestamp()
     
     call log_this('Starting the main run')
@@ -259,6 +266,7 @@ end program many_cell       ! Main Program Ends
 	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
 	subroutine maps
 
+        use shared
         use map_arrays
 
 	implicit none
@@ -292,7 +300,7 @@ end program many_cell       ! Main Program Ends
 	!!*** Subroutine to make linked lists & head of chain arrays ***!!
 	subroutine links
 
-	use position_arrays
+	use shared
 	use list_arrays
 	use map_arrays	
 
@@ -351,14 +359,12 @@ end program many_cell       ! Main Program Ends
 	end
 	
 	
- 	!!*** Subroutine for the forces of interaction ***!!
+ 	!!*** Subroutine for intercellular forces of interaction ***!!
     ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
     ! `ring_a` and `ring_c` denote any ring pair within neighbouring cells/grids
 	subroutine interaction()
 
 	use shared
-    use position_arrays
-	use forces
 	use map_arrays
 	use list_arrays
           
@@ -367,8 +373,6 @@ end program many_cell       ! Main Program Ends
     double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor
 	integer:: icell,jcell,jcell0,nabor 
 	
-        	f_intx=0.0d0
-        	f_inty=0.0d0
 			f_rpx=0.0d0
 			f_rpy=0.0d0
 			f_adx=0.0d0
@@ -520,11 +524,8 @@ end program many_cell       ! Main Program Ends
     f_adx = k_adh*f_adx
     f_ady = k_adh*f_ady
     f_rpx = k_rep*f_rpx
-    f_rpy = k_rep*f_rpy
-    
-    f_intx = f_adx + f_rpx
-    f_inty = f_ady + f_rpy
-    
+    f_rpy = k_rep*f_rpy    
+
 	return
         end subroutine interaction            
 
@@ -533,12 +534,13 @@ end program many_cell       ! Main Program Ends
 !!! Subroutine for random initial configurations
 subroutine initial
 
-use position_arrays
+use shared
  
 implicit none
 double precision:: a,b,a1,b1,g,dr,q,theta1
 integer:: l,k1,i,t
       DOUBLE PRECISION:: rands(2)
+      double precision, dimension(size(x,dim=1)) :: x1, y1
 
 
 q = 0.5d0*dsqrt(m*7.3d0)
@@ -598,12 +600,11 @@ end do
 	end     
 
 
-!! Subroutine for force calculation in a single cell 
+!! Subroutine for intracellular forces 
 	subroutine force
 
 	use shared	
-	use position_arrays
-	use forces
+	
 
 	implicit none
 	integer:: i,j,l
@@ -652,8 +653,8 @@ end do
 !! Subroutine for the movement step in time using Euler-Maruyama algo ( including noise)
        subroutine move_noise
 
-       use position_arrays
-       use forces
+       use shared
+       
 
        implicit none
        integer:: i,j,l
@@ -672,8 +673,8 @@ end do
              noise=reshape(g, [m,n]) ! reshapes 1D array g into 2D
 
        do concurrent (l=1:m, i=1:n)
-           vx = (fx(l,i) + f_intx(l,i))*dt/c + Vo*mx(l,i)*dt
-           vy = (fy(l,i) + f_inty(l,i))*dt/c + Vo*my(l,i)*dt       
+           vx = (fx(l,i) + f_adx(l,i) + f_rpx(l,i))*dt/c + Vo*mx(l,i)*dt
+           vy = (fy(l,i) + f_ady(l,i) + f_rpy(l,i))*dt/c + Vo*my(l,i)*dt
            x(l,i) = x(l,i) + vx
            y(l,i) = y(l,i) + vy
             
@@ -695,7 +696,7 @@ end do
 !! Subroutine for initializaion of noise-angle
        subroutine initial_angle           
 
-        use position_arrays
+        use shared
 
         implicit none
 
