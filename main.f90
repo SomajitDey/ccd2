@@ -125,33 +125,9 @@ module shared
     end interface
 end module shared
 
-       module map_arrays
-         
-       use shared
-
-       implicit none
-	   integer,parameter:: w=int(box/rcut), ncell=w*w
-	   integer,parameter:: mapsiz=4*ncell
-	   integer:: map(mapsiz)
- 
-       end module map_arrays
-
-
-       module list_arrays
-         
-       use shared
-       use map_arrays
-
-       implicit none
-	   integer:: headcell(ncell),headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n)
- 
-       end module list_arrays
-
-
 program many_cell       ! Main Program Starts
 	use shared
-	use map_arrays
-	use list_arrays
+    use grid_linked_list
 
     implicit none
 
@@ -263,51 +239,63 @@ program many_cell       ! Main Program Starts
     call log_this('Done')
 end program many_cell       ! Main Program Ends
 
+module grid_linked_list
+       use shared
+
+       implicit none
+
+	   integer, protected:: w, ncell
+	   integer, protected:: mapsiz
+	   integer, dimension(:), allocatable:: map
+	   integer, dimension(:), allocatable:: headcell
+       integer, dimension(:,:), allocatable:: headbead,listcell,listbead,icell_memory
+       private :: grid_index
+       
+    contains
+    
+    !! Function To Give Cell Index !!
+    pure integer function grid_index(ix, iy)
+        integer, intent(in):: ix,iy
+
+      	grid_index = 1 + mod(ix-1+w , w) + mod(iy-1+w , w) * w
+    end function grid_index
 
 	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
-	subroutine maps
+	subroutine maps()
+	integer:: ix,iy,imap,alloc_stat
 
-        use shared
-        use map_arrays
-
-	implicit none
-	integer:: ix,iy,imap,icell
-
-	!! Statement Function To Give Cell Index !!
-
-	icell(ix,iy) = 1 + mod(ix-1+w , w) + mod(iy-1+w , w) * w
-
+    w=int(box/rcut)
+    ncell=w*w
+    mapsiz=4*ncell
+    
+    allocate(map(mapsiz), headcell(ncell), headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n), &
+        stat=alloc_stat)
+        
+     if(alloc_stat /= 0) error stop 'Problem while allocating grid_linked_list'
+    
 	!! Find Half The Nearest Neighbours Of Each Cell !!
 
 	do iy=1,w
         	do ix=1,w
 
 			
-			imap = (icell(ix,iy) - 1) * 4
+			imap = (grid_index(ix,iy) - 1) * 4
 		
-			map(imap+1) = icell(ix+1,iy)
-			map(imap+2) = icell(ix+1,iy+1)
-			map(imap+3) = icell(ix,iy+1)
-			map(imap+4) = icell(ix-1,iy+1)
-
-			!write(11,*)icell(ix,iy),map(imap+1),map(imap+2),map(imap+3),map(imap+4)
+			map(imap+1) = grid_index(ix+1,iy)
+			map(imap+2) = grid_index(ix+1,iy+1)
+			map(imap+3) = grid_index(ix,iy+1)
+			map(imap+4) = grid_index(ix-1,iy+1)
 		end do
-	end do	
-
-	return
-	end
+	end do
+	end subroutine maps
 
 
 	!!*** Subroutine to make linked lists & head of chain arrays ***!!
-	subroutine links
-
-	use shared
-	use list_arrays
-	use map_arrays	
-
-	implicit none
-	integer:: icell,l,i,headcell_dummy(ncell)
-	double precision:: cell,celli,x3(m,n),y3(m,n),delta
+	subroutine links()
+	integer:: icell,l,i
+    integer, dimension(size(headcell)):: headcell_dummy
+	double precision:: cell,celli,delta
+    double precision, dimension(size(x,1),size(x,2)):: x3,y3
 	
    	!! Zero Head Of Chain Array & List Array !!
 
@@ -323,12 +311,7 @@ end program many_cell       ! Main Program Ends
 	celli = dble(w/box) !! celli is the inverse of cell length
 	cell  = 1.0d0/celli !! cell is the cell length
 
-	!if(j1.eq.1) write(*,*) 'cell length=',cell,'No.of cells=',ncell,'inverse length=',celli
-	!write(*,*) 'cell length=',cell,'No.of cells=',ncell,'inverse length=',celli
-
-	if(cell.lt.rcut) then
-		stop 'cell size to small for cut off'
-	end if
+	if(cell.lt.rcut) error stop 'Grid size too small compared to interaction cut-off'
 
 	!! Sort All Beads !!
 
@@ -354,11 +337,10 @@ end program many_cell       ! Main Program Ends
 		headcell = headcell_dummy                   !! Highest ring index in a cell(icell) 
 
 	end do
+	end subroutine links
 
+end module grid_linked_list
 
-	return
-	end
-	
 	
  	!!*** Subroutine for intercellular forces of interaction ***!!
     ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
@@ -366,8 +348,7 @@ end program many_cell       ! Main Program Ends
 	subroutine interaction()
 
 	use shared
-	use map_arrays
-	use list_arrays
+    use grid_linked_list
           
     implicit none
     integer:: i,j,l,q
