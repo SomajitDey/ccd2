@@ -415,16 +415,16 @@ program many_cell       ! Main Program Starts
     call log_this('Run complete...writing final config: '//final_fname)
         ! Open final config file
         open(newunit=final_fd, file=final_fname, access='sequential', form='formatted',status='replace', &
-            asynchronous='yes', action='write')
+            action='write')
           final_dump: do l=1,M
-            write(final_fd,*,asynchronous='yes') '#Cell:', l
+            write(final_fd,*) '#Cell:', l
             do i=1,N        
 				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
 				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
-                write(final_fd,*,asynchronous='yes') x(l,i),y(l,i)
+                write(final_fd,*) x(l,i),y(l,i)
             end do
-            write(final_fd,*,asynchronous='yes') '#End_Cell:', l
-            write(final_fd,*,asynchronous='yes')
+            write(final_fd,*) '#End_Cell:', l
+            write(final_fd,*)
           end do final_dump
 
     call close_files()
