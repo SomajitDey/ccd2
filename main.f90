@@ -1,3 +1,100 @@
+module utilities
+implicit none
+contains
+
+!!!!!!!!/////// Gaussian random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
+! Polar rejection method (Knop[1969]) related to Box-Muller transform
+ Subroutine gasdev(g,mean,variance) 
+      DOUBLE PRECISION,INTENT(IN)::variance,mean
+      DOUBLE PRECISION,INTENT(OUT)::g(:)
+      DOUBLE PRECISION:: fac,rsq,v1,v2
+      DOUBLE PRECISION:: rands(2)
+      INTEGER:: i, size_g
+      
+      size_g=size(g)
+     
+     harvest_g_array: DO i=1,size_g,2
+        DO
+        CALL RANDOM_NUMBER(rands)
+        v1=2.0d0*rands(1)-1.0d0
+        v2=2.0d0*rands(2)-1.0d0
+        rsq=v1**2+v2**2
+        if((rsq<1.0d0).AND.(rsq/=0.0d0))EXIT
+        ENDDO
+        fac=variance*DSQRT(-2.0d0*dlog(rsq)/(rsq))
+        g(i)=v1*fac+mean
+        if(i/=size_g) g(i+1)=v2*fac+mean 
+     END DO harvest_g_array
+      END subroutine gasdev
+
+
+
+! Brief: This subroutine outputs the time spent in secs (cpu & wall clock) since its previous invocation
+! Note: All arguments are optional and of type real
+! Note: CPU usage = cpu x 100 % / wclock
+! Note: #Threads = nint(cpu/wclock)
+
+subroutine timestamp(cpu, wclock)
+    real, intent(out), optional :: cpu, wclock
+    integer, save :: sys_clock_count_prev
+    integer :: sys_clock_count, sys_clock_max, sys_clock_rate, sys_clock_diff
+    real, save :: cpu_sec_prev
+    real :: cpu_sec
+    integer :: call_count = 1 ! implicit save attribute
+
+    call cpu_time(cpu_sec)
+    
+    if (present(cpu)) then
+        if (call_count == 1) then
+            cpu = 0.0
+        else
+            cpu = cpu_sec - cpu_sec_prev
+         end if
+    end if
+    cpu_sec_prev = cpu_sec
+
+    call system_clock(sys_clock_count, sys_clock_rate, sys_clock_max)
+
+    if (present(wclock)) then
+        if (call_count == 1) then
+            sys_clock_diff = 0
+        else
+            sys_clock_diff = sys_clock_count - sys_clock_count_prev
+        end if
+        
+        if (sys_clock_diff < 0) then
+            wclock = real(sys_clock_diff + sys_clock_max) / sys_clock_rate
+        else
+            wclock = real(sys_clock_diff) / sys_clock_rate
+        end if
+    end if
+    sys_clock_count_prev = sys_clock_count
+     
+    call_count = call_count + 1
+end subroutine timestamp
+
+    ! Transforms real seconds into human readable format
+    pure character(len=15) function dhms(sec)
+        real, intent(in) :: sec
+        integer :: days,hrs,mins,secs
+     
+        call div_rem(int(sec), 3600*24, days, secs)
+        call div_rem(secs, 3600, hrs, secs)
+        call div_rem(secs, 60, mins, secs)   
+     
+        write(dhms,"(i0,'d',1x,i0,'h',1x,i0,'m',1x,i0,'s')") days, hrs, mins, secs
+    end function dhms
+     
+    pure subroutine div_rem(divided, divisor, quotient, remainder)
+        integer, intent(in) :: divided, divisor
+        integer, intent(out) :: quotient, remainder
+    
+        quotient = divided / divisor
+        remainder = mod(divided, divisor)
+    end subroutine div_rem
+
+end module utilities
+
 module parameters
     implicit none
     public
@@ -114,18 +211,116 @@ module files
 end module files
 
 module shared
+    use utilities
     use parameters
     use state_vars
     use files
     implicit none
     public
     double precision, parameter::  pi = dacos(-1.0d0)
-    interface
-        subroutine timestamp(cputime,wallclock)
-            real, intent(out), optional :: cputime,wallclock
-        end subroutine timestamp
-    end interface
 end module shared
+
+module grid_linked_list
+       use shared
+
+       implicit none
+
+	   integer, protected:: w, ncell
+	   integer, protected:: mapsiz
+	   integer, dimension(:), allocatable:: map
+	   integer, dimension(:), allocatable:: headcell
+       integer, dimension(:,:), allocatable:: headbead,listcell,listbead,icell_memory
+       private :: grid_index
+       
+    contains
+    
+    !! Function To Give Cell Index !!
+    pure integer function grid_index(ix, iy)
+        integer, intent(in):: ix,iy
+
+      	grid_index = 1 + mod(ix-1+w , w) + mod(iy-1+w , w) * w
+    end function grid_index
+
+	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
+	subroutine maps()
+	integer:: ix,iy,imap,alloc_stat
+
+    w=int(box/rcut)
+    ncell=w*w
+    mapsiz=4*ncell
+    
+    allocate(map(mapsiz), headcell(ncell), headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n), &
+        stat=alloc_stat)
+        
+     if(alloc_stat /= 0) error stop 'Problem while allocating grid_linked_list'
+    
+	!! Find Half The Nearest Neighbours Of Each Cell !!
+
+	do iy=1,w
+        	do ix=1,w
+
+			
+			imap = (grid_index(ix,iy) - 1) * 4
+		
+			map(imap+1) = grid_index(ix+1,iy)
+			map(imap+2) = grid_index(ix+1,iy+1)
+			map(imap+3) = grid_index(ix,iy+1)
+			map(imap+4) = grid_index(ix-1,iy+1)
+		end do
+	end do
+	end subroutine maps
+
+
+	!!*** Subroutine to make linked lists & head of chain arrays ***!!
+	subroutine links()
+	integer:: icell,l,i
+    integer, dimension(size(headcell)):: headcell_dummy
+	double precision:: cell,celli,delta
+    double precision, dimension(size(x,1),size(x,2)):: x3,y3
+	
+   	!! Zero Head Of Chain Array & List Array !!
+
+
+	headcell      =0 !! head of chain array for the rings in a cell
+	headcell_dummy=0
+	listcell      =0 !! List array for the rings in a cell
+	headbead      =0 !! head of chain array for the beads in a ring in the cell
+	listbead      =0
+
+	delta = 0.0d0
+
+	celli = dble(w/box) !! celli is the inverse of cell length
+	cell  = 1.0d0/celli !! cell is the cell length
+
+	if(cell.lt.rcut) error stop 'Grid size too small compared to interaction cut-off'
+
+	!! Sort All Beads !!
+
+	do l=1,m	 !! Loop over rings
+		do i=1,n !! Loop over beads
+
+		        x3(l,i) = x(l,i) - box*floor(x(l,i)/box)
+                        y3(l,i) = y(l,i) - box*floor(y(l,i)/box)
+
+
+			icell = 1 + int(x3(l,i) * celli) + int(y3(l,i) * celli) * w  !! determining the cell index for a particular bead
+
+			icell_memory(l,i) = icell
+			
+			
+			listcell(icell,l)     = headcell(icell)     !! The next lower ring index in that cell(icell)
+			listbead(l,i)         = headbead(icell,l)   !! The next lower bead index of a part of a ring(l) in a cell(icell) 
+			headbead(icell,l)     = i	            !! Highest bead index in the part of the ring(l) in a cell(icell)
+			headcell_dummy(icell) = l
+
+		end do	
+
+		headcell = headcell_dummy                   !! Highest ring index in a cell(icell) 
+
+	end do
+	end subroutine links
+
+end module grid_linked_list
 
 program many_cell       ! Main Program Starts
 	use shared
@@ -240,109 +435,6 @@ program many_cell       ! Main Program Starts
 
     call log_this('Done')
 end program many_cell       ! Main Program Ends
-
-module grid_linked_list
-       use shared
-
-       implicit none
-
-	   integer, protected:: w, ncell
-	   integer, protected:: mapsiz
-	   integer, dimension(:), allocatable:: map
-	   integer, dimension(:), allocatable:: headcell
-       integer, dimension(:,:), allocatable:: headbead,listcell,listbead,icell_memory
-       private :: grid_index
-       
-    contains
-    
-    !! Function To Give Cell Index !!
-    pure integer function grid_index(ix, iy)
-        integer, intent(in):: ix,iy
-
-      	grid_index = 1 + mod(ix-1+w , w) + mod(iy-1+w , w) * w
-    end function grid_index
-
-	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
-	subroutine maps()
-	integer:: ix,iy,imap,alloc_stat
-
-    w=int(box/rcut)
-    ncell=w*w
-    mapsiz=4*ncell
-    
-    allocate(map(mapsiz), headcell(ncell), headbead(ncell,m),listcell(ncell,m),listbead(m,n),icell_memory(m,n), &
-        stat=alloc_stat)
-        
-     if(alloc_stat /= 0) error stop 'Problem while allocating grid_linked_list'
-    
-	!! Find Half The Nearest Neighbours Of Each Cell !!
-
-	do iy=1,w
-        	do ix=1,w
-
-			
-			imap = (grid_index(ix,iy) - 1) * 4
-		
-			map(imap+1) = grid_index(ix+1,iy)
-			map(imap+2) = grid_index(ix+1,iy+1)
-			map(imap+3) = grid_index(ix,iy+1)
-			map(imap+4) = grid_index(ix-1,iy+1)
-		end do
-	end do
-	end subroutine maps
-
-
-	!!*** Subroutine to make linked lists & head of chain arrays ***!!
-	subroutine links()
-	integer:: icell,l,i
-    integer, dimension(size(headcell)):: headcell_dummy
-	double precision:: cell,celli,delta
-    double precision, dimension(size(x,1),size(x,2)):: x3,y3
-	
-   	!! Zero Head Of Chain Array & List Array !!
-
-
-	headcell      =0 !! head of chain array for the rings in a cell
-	headcell_dummy=0
-	listcell      =0 !! List array for the rings in a cell
-	headbead      =0 !! head of chain array for the beads in a ring in the cell
-	listbead      =0
-
-	delta = 0.0d0
-
-	celli = dble(w/box) !! celli is the inverse of cell length
-	cell  = 1.0d0/celli !! cell is the cell length
-
-	if(cell.lt.rcut) error stop 'Grid size too small compared to interaction cut-off'
-
-	!! Sort All Beads !!
-
-	do l=1,m	 !! Loop over rings
-		do i=1,n !! Loop over beads
-
-		        x3(l,i) = x(l,i) - box*floor(x(l,i)/box)
-                        y3(l,i) = y(l,i) - box*floor(y(l,i)/box)
-
-
-			icell = 1 + int(x3(l,i) * celli) + int(y3(l,i) * celli) * w  !! determining the cell index for a particular bead
-
-			icell_memory(l,i) = icell
-			
-			
-			listcell(icell,l)     = headcell(icell)     !! The next lower ring index in that cell(icell)
-			listbead(l,i)         = headbead(icell,l)   !! The next lower bead index of a part of a ring(l) in a cell(icell) 
-			headbead(icell,l)     = i	            !! Highest bead index in the part of the ring(l) in a cell(icell)
-			headcell_dummy(icell) = l
-
-		end do	
-
-		headcell = headcell_dummy                   !! Highest ring index in a cell(icell) 
-
-	end do
-	end subroutine links
-
-end module grid_linked_list
-
 	
  	!!*** Subroutine for intercellular forces of interaction ***!!
     ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
@@ -645,12 +737,6 @@ end do
        double precision:: vx,vy,wz
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
        double precision :: noise(m,n), g(m*n)
-       interface
-        Subroutine gasdev(g,mean,variance) 
-            DOUBLE PRECISION,INTENT(IN)::variance,mean
-            DOUBLE PRECISION,INTENT(OUT)::g(:)
-        end subroutine gasdev
-       end interface
           
  
              CALL gasdev(g,mean,var)
@@ -702,97 +788,3 @@ end do
 
         return
         end
-
- 
-!!!!!!!!/////// Gaussian random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
-! Polar rejection method (Knop[1969]) related to Box-Muller transform
- Subroutine gasdev(g,mean,variance) 
-  Implicit none
-      DOUBLE PRECISION,INTENT(IN)::variance,mean
-      DOUBLE PRECISION,INTENT(OUT)::g(:)
-      DOUBLE PRECISION:: fac,rsq,v1,v2
-      DOUBLE PRECISION:: rands(2)
-      INTEGER:: i, size_g
-      
-      size_g=size(g)
-     
-     harvest_g_array: DO i=1,size_g,2
-        DO
-        CALL RANDOM_NUMBER(rands)
-        v1=2.0d0*rands(1)-1.0d0
-        v2=2.0d0*rands(2)-1.0d0
-        rsq=v1**2+v2**2
-        if((rsq<1.0d0).AND.(rsq/=0.0d0))EXIT
-        ENDDO
-        fac=variance*DSQRT(-2.0d0*dlog(rsq)/(rsq))
-        g(i)=v1*fac+mean
-        if(i/=size_g) g(i+1)=v2*fac+mean 
-     END DO harvest_g_array
-      END subroutine gasdev
-
-
-
-! Brief: This subroutine outputs the time spent in secs (cpu & wall clock) since its previous invocation
-! Note: All arguments are optional and of type real
-! Note: CPU usage = cpu x 100 % / wclock
-! Note: #Threads = nint(cpu/wclock)
-
-subroutine timestamp(cpu, wclock)
-    implicit none
-    real, intent(out), optional :: cpu, wclock
-    integer, save :: sys_clock_count_prev
-    integer :: sys_clock_count, sys_clock_max, sys_clock_rate, sys_clock_diff
-    real, save :: cpu_sec_prev
-    real :: cpu_sec
-    integer :: call_count = 1 ! implicit save attribute
-
-    call cpu_time(cpu_sec)
-    
-    if (present(cpu)) then
-        if (call_count == 1) then
-            cpu = 0.0
-        else
-            cpu = cpu_sec - cpu_sec_prev
-         end if
-    end if
-    cpu_sec_prev = cpu_sec
-
-    call system_clock(sys_clock_count, sys_clock_rate, sys_clock_max)
-
-    if (present(wclock)) then
-        if (call_count == 1) then
-            sys_clock_diff = 0
-        else
-            sys_clock_diff = sys_clock_count - sys_clock_count_prev
-        end if
-        
-        if (sys_clock_diff < 0) then
-            wclock = real(sys_clock_diff + sys_clock_max) / sys_clock_rate
-        else
-            wclock = real(sys_clock_diff) / sys_clock_rate
-        end if
-    end if
-    sys_clock_count_prev = sys_clock_count
-     
-    call_count = call_count + 1
-end subroutine timestamp
-
-    ! Transforms real seconds into human readable format
-    pure character(len=15) function dhms(sec)
-        real, intent(in) :: sec
-        integer :: days,hrs,mins,secs
-     
-        call div_rem(int(sec), 3600*24, days, secs)
-        call div_rem(secs, 3600, hrs, secs)
-        call div_rem(secs, 60, mins, secs)   
-     
-        write(dhms,"(i0,'d',1x,i0,'h',1x,i0,'m',1x,i0,'s')") days, hrs, mins, secs
-    end function dhms
-     
-    pure subroutine div_rem(divided, divisor, quotient, remainder)
-        integer, intent(in) :: divided, divisor
-        integer, intent(out) :: quotient, remainder
-    
-        quotient = divided / divisor
-        remainder = mod(divided, divisor)
-    end subroutine div_rem
