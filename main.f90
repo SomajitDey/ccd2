@@ -21,8 +21,10 @@ module parameters
     namelist /params/ dt, jf, Vo, k_adh, tau_align, var,m,n
 
     ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
+    !TODO : Box should be derived and be present inside checkpoint and module state_vars
     double precision,parameter:: box = 46.0d0   !  Box length
     double precision,parameter:: rcut= 1.50d0 
+    !TODO: radius should be derived from number of beads per cell and l0
     double precision,parameter:: radius= 1.0d0   ! Initial cell radius
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
