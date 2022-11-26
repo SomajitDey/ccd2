@@ -15,12 +15,12 @@ module parameters
     double precision, protected:: dt=0.001d0   ! Integration timestep
     integer, protected:: tau_align=10 ! Tau for Vicsek alignment in multiples of dt
     integer, protected:: jf=10050000  !! No. of Iterations
+    integer,protected:: n = 50    ! No. of beads
+    integer,protected:: m = 256   ! No. of cell
 
-    namelist /params/ dt, jf, Vo, k_adh, tau_align, var
+    namelist /params/ dt, jf, Vo, k_adh, tau_align, var,m,n
 
     ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
-    integer,parameter:: n = 50    ! No. of beads
-    integer,parameter:: m = 256   ! No. of cell
     double precision,parameter:: box = 46.0d0   !  Box length
     double precision,parameter:: rcut= 1.50d0 
     double precision,parameter:: radius= 1.0d0   ! Initial cell radius
@@ -156,7 +156,6 @@ program many_cell       ! Main Program Starts
     implicit none
 
 	integer:: l,i,j1,reclen,recnum
-	double precision:: x2(m,n),y2(m,n),sys_xcm,sys_ycm
     real:: cpusec,wcsec
     logical:: another_run_is_live
     character(len=10):: buffer  ! Internal file
@@ -256,8 +255,10 @@ program many_cell       ! Main Program Starts
     call timestamp(cpusec,wcsec)
 
     write(*,*)
-    write(*,*) 'Performance stats:'
-    write(*,*)'cputime = ', cpusec, 'wallclock_time = ', wcsec, '#threads = ', nint(cpusec/wcsec) 
+    write(*,*) 'Performance:'
+    write(*,*) 'CPU = ', dhms(cpusec)
+    write(*,*) 'Wallclock = ', dhms(wcsec)
+    write(*,*) '# Threads = ', nint(cpusec/wcsec) 
 
     call log_this('Done')
 end program many_cell       ! Main Program Ends
@@ -792,3 +793,23 @@ subroutine timestamp(cpu, wclock)
      
     call_count = call_count + 1
 end subroutine timestamp
+
+    ! Transforms real seconds into human readable format
+    pure character(len=15) function dhms(sec)
+        real, intent(in) :: sec
+        integer :: days,hrs,mins,secs
+     
+        call div_rem(int(sec), 3600*24, days, secs)
+        call div_rem(secs, 3600, hrs, secs)
+        call div_rem(secs, 60, mins, secs)   
+     
+        write(dhms,"(i0,'d',1x,i0,'h',1x,i0,'m',1x,i0,'s')") days, hrs, mins, secs
+    end function dhms
+     
+    pure subroutine div_rem(divided, divisor, quotient, remainder)
+        integer, intent(in) :: divided, divisor
+        integer, intent(out) :: quotient, remainder
+    
+        quotient = divided / divisor
+        remainder = mod(divided, divisor)
+    end subroutine div_rem
