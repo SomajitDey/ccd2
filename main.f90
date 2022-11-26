@@ -1,5 +1,6 @@
 module utilities
 implicit none
+private :: div_rem 
 contains
 
 !!!!!!!!/////// Gaussian random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -78,19 +79,21 @@ end subroutine timestamp
         real, intent(in) :: sec
         integer :: days,hrs,mins,secs
      
-        call div_rem(int(sec), 3600*24, days, secs)
-        call div_rem(secs, 3600, hrs, secs)
-        call div_rem(secs, 60, mins, secs)   
+        secs=int(sec)
+        call div_rem(secs, 3600*24, days)
+        call div_rem(secs, 3600, hrs)
+        call div_rem(secs, 60, mins)   
      
         write(dhms,"(i0,'d',1x,i0,'h',1x,i0,'m',1x,i0,'s')") days, hrs, mins, secs
     end function dhms
      
-    pure subroutine div_rem(divided, divisor, quotient, remainder)
-        integer, intent(in) :: divided, divisor
-        integer, intent(out) :: quotient, remainder
+    pure subroutine div_rem(divided_becomes_remainder, divisor, quotient)
+        integer, intent(inout) :: divided_becomes_remainder
+        integer, intent(in) :: divisor
+        integer, intent(out) :: quotient
     
-        quotient = divided / divisor
-        remainder = mod(divided, divisor)
+        quotient = divided_becomes_remainder / divisor
+        divided_becomes_remainder = mod(divided_becomes_remainder, divisor)
     end subroutine div_rem
 
 end module utilities
@@ -429,8 +432,8 @@ program many_cell       ! Main Program Starts
 
     write(*,*)
     write(*,*) 'Performance:'
-    write(*,*) 'CPU = ', dhms(cpusec)
-    write(*,*) 'Wallclock = ', dhms(wcsec)
+    write(*,*) 'CPU = '//dhms(cpusec)
+    write(*,*) 'Wallclock = '//dhms(wcsec)
     write(*,*) '# Threads = ', nint(cpusec/wcsec) 
 
     call log_this('Done')
