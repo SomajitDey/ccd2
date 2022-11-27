@@ -201,16 +201,10 @@ module files
         character(len=8) :: curr_date
         character(len=10) :: curr_time
         call date_and_time(date=curr_date, time=curr_time)
-        write(err_fd,*) curr_date(7:8), '-', curr_date(5:6), '-', curr_date(1:4), '  ',&
-            curr_time(1:2), ':', curr_time(3:4), ':', curr_time(5:6),' => ', msg
+        write(err_fd,'(/,a,1x,a,1x,a,1x,a)') curr_date(7:8) // '-' // curr_date(5:6) // '-' // curr_date(1:4), &
+            curr_time(1:2) // ':' // curr_time(3:4) // ':' // curr_time(5:6), ' => ', msg
     end subroutine log_this
     
-    subroutine err_stop(msg)
-        character(len=*), intent(in) :: msg
-        call log_this('ERROR:'//msg)
-        call close_files
-        error stop
-    end subroutine err_stop
 end module files
 
 module shared
@@ -339,16 +333,16 @@ program many_cell       ! Main Program Starts
     call assign_params(params_fname)
     call log_this('Run parameters read in')
 
-    write(*,*)'Parameters used:'
+    write(*,'(/,a,/)') 'Parameters used:'
     write(*,nml=params) ! Dump all params on STDOUT
 
     call log_this('Creating all necessary arrays (such as positions) @ heap')
-    if(allocate_array_stat(m,n) /= 0) call err_stop('Array allocation in heap encountered some problem.') 
+    if(allocate_array_stat(m,n) /= 0) error stop 'Array allocation in heap encountered some problem.'
 
     ! Check if another run is live and Open status file to manifest live status.
     ! This has to be done before the run changes any state / writes anything to memory.
     inquire(file=status_fname, exist=another_run_is_live)
-    if(another_run_is_live) call err_stop('Another run is going on')
+    if(another_run_is_live) error stop 'Another run is going on'
     open(newunit=status_fd,file=status_fname, access='sequential', form='formatted',status='new', &
         asynchronous='yes', action='write')
 
@@ -412,31 +406,31 @@ program many_cell       ! Main Program Starts
 
 	end do timeseries
 
+    call timestamp(cpusec,wcsec)
+
     call log_this('Run complete...writing final config: '//final_fname)
         ! Open final config file
         open(newunit=final_fd, file=final_fname, access='sequential', form='formatted',status='replace', &
             action='write')
           final_dump: do l=1,M
-            write(final_fd,*) '#Cell:', l
+            write(final_fd,'(a,1x,i0)') '#Cell:', l
             do i=1,N        
 				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
 				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
                 write(final_fd,*) x(l,i),y(l,i)
             end do
-            write(final_fd,*) '#End_Cell:', l
-            write(final_fd,*)
+            write(final_fd,'(a,1x,i0,/)') '#End_Cell:', l
           end do final_dump
 
     call close_files()
-    call timestamp(cpusec,wcsec)
-
-    write(*,*)
-    write(*,*) 'Performance:'
-    write(*,*) 'CPU = '//dhms(cpusec)
-    write(*,*) 'Wallclock = '//dhms(wcsec)
-    write(*,*) '# Threads = ', nint(cpusec/wcsec) 
 
     call log_this('Done')
+
+    write(err_fd,'(/,a)') 'Performance:'
+    write(err_fd,'(a)') 'CPU = '//dhms(cpusec)
+    write(err_fd,'(a)') 'Wallclock = '//dhms(wcsec)
+    write(err_fd,'(a,1x,i0,/)') '# Threads = ', nint(cpusec/wcsec) 
+
 end program many_cell       ! Main Program Ends
 	
  	!!*** Subroutine for intercellular forces of interaction ***!!
