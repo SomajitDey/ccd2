@@ -319,7 +319,7 @@ module grid_linked_list
 
 end module grid_linked_list
 
-program many_cell       ! Main Program Starts
+program ccd_run       ! Main Program Starts
 	use shared
     use grid_linked_list
 
@@ -431,7 +431,7 @@ program many_cell       ! Main Program Starts
     write(err_fd,'(a)') 'Wallclock = '//dhms(wcsec)
     write(err_fd,'(a,1x,i0,/)') '# Threads = ', nint(cpusec/wcsec) 
 
-end program many_cell       ! Main Program Ends
+end program ccd_run       ! Main Program Ends
 	
  	!!*** Subroutine for intercellular forces of interaction ***!!
     ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
@@ -670,7 +670,7 @@ end do
      end do
 
 	return
-	end     
+	end subroutine initial
 
 
 !! Subroutine for intracellular forces 
@@ -720,7 +720,7 @@ end do
 		 
 
 	return
-	end
+	end subroutine force
 
 
 !! Subroutine for the movement step in time using Euler-Maruyama algo ( including noise)
@@ -757,7 +757,7 @@ end do
       end do
 
       return
-      end
+      end subroutine move_noise
 
 
 !! Subroutine for initializaion of noise-angle
@@ -784,4 +784,4 @@ end do
         end do
 
         return
-        end
+        end subroutine initial_angle
