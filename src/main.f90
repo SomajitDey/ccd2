@@ -96,6 +96,18 @@ end subroutine timestamp
         divided_becomes_remainder = mod(divided_becomes_remainder, divisor)
     end subroutine div_rem
 
+    ! Outputs the sha1 hash of any given file
+    character(len=40) function sha1(fname)
+        character(len=*), intent(in) :: fname
+        character(len=*), parameter :: tmpfile = '.sha1.tmp'
+        integer :: tmpunit
+
+        call execute_command_line("sha1sum "//fname//" > "//tmpfile)
+        open(newunit=tmpunit, file=tmpfile, status='old', action='read')
+            read(tmpunit, '(a)') sha1
+        close(tmpunit, status='delete')
+    end function sha1
+
 end module utilities
 
 module parameters
@@ -187,6 +199,9 @@ module files
     character(len=*), parameter :: cpt_fname='state.cpt'
     ! File Descriptors
     integer :: traj_fd, final_fd, status_fd, cpt_fd
+    character(len=40) :: init_cpt_hash, final_cpt_hash, traj_hash
+    
+    namelist /checksums/ init_cpt_hash, final_cpt_hash, traj_hash
     
     contains
     
@@ -333,7 +348,7 @@ program ccd_run       ! Main Program Starts
     call assign_params(params_fname)
     call log_this('Run parameters read in')
 
-    write(*,'(/,a,/)') 'Parameters used:'
+    write(*,'(/,a,/)') 'Metadata:'
     write(*,nml=params) ! Dump all params on STDOUT
 
     call log_this('Creating all necessary arrays (such as positions) @ heap')
@@ -423,6 +438,10 @@ program ccd_run       ! Main Program Starts
           end do final_dump
 
     call close_files()
+
+    final_cpt_hash = sha1(cpt_fname)
+    traj_hash = sha1(traj_fname)
+    write(*,nml=checksums)
 
     call log_this('Done')
 
