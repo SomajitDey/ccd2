@@ -5,8 +5,8 @@ This software contains the simulation engine and analysis tools for the bead-spr
 Work in progress
 
 # Dependencies
-- [fortdepend](https://github.com/ZedThree/fort_depend.py)
+- [fortdepend](https://github.com/ZedThree/fort_depend.py) or its [fork](https://github.com/PhyBi/fortdepend)
+- [pv](https://command-not-found.com/pv)
 
 # License
 No use of this software shall be made without permission from the PI, [Dr. Dipjyoti Das](mailto:dipjyoti.das@iiserkol.ac.in).
-

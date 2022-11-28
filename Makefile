@@ -74,6 +74,7 @@ $(BUILD_DIR):
 
 # Generate fresh dependency file whenever the codebase (sources) is modified or this Makefile changes
 $(DEPFILE): $(SRCS) $(MAKEFILE_LIST)
+	@echo 'Generating dependencies:'
 	fortdepend --files $(SRC_DIR)/$(SRCS) --build $(BUILD_DIR) --ignore-modules $(IMODS) --output $(DEPFILE) --overwrite --verbose
 
 # Define dependencies between object files
