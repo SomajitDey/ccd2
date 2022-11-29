@@ -100,11 +100,12 @@ end subroutine timestamp
     character(len=40) function sha1(fname)
         character(len=*), intent(in) :: fname
         character(len=*), parameter :: tmpfile = '.sha1.tmp'
-        integer :: tmpunit
+        integer :: tmpunit, ios
 
-        call execute_command_line("sha1sum "//fname//" > "//tmpfile)
+        call execute_command_line("sha1sum "//fname//" 2>/dev/null > "//tmpfile)
         open(newunit=tmpunit, file=tmpfile, status='old', action='read')
-            read(tmpunit, '(a)') sha1
+            read(tmpunit, '(a)', iostat=ios) sha1
+            if (ios /= 0) sha1=''
         close(tmpunit, status='delete')
     end function sha1
 
