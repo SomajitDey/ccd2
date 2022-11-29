@@ -1,5 +1,6 @@
 program ccd_run
 	use shared
+    use init
     use grid_linked_list
     use forces
     use integrator
