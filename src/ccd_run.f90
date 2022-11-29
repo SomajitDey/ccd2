@@ -14,8 +14,6 @@ program ccd_run
     call assign_params(params_fname)
     call log_this('Run parameters read in')
 
-    write(*,'(/,a,/)') 'Metadata:'
-    write(*,nml=params) ! Dump all params on STDOUT
 
     call log_this('Creating all necessary arrays (such as positions) @ heap')
     if(allocate_array_stat(m,n) /= 0) error stop 'Array allocation in heap encountered some problem.'
@@ -33,10 +31,7 @@ program ccd_run
 
     ! Open trajectory file
     call log_this('Initiating trajectory file: '//traj_fname)
-	inquire(iolength=reclen) j1, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
-    open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', status='replace', &
-        asynchronous='yes', action='write')
-
+    call open_traj('write', 'replace')
     ! Initialize/Pre-run setup
     call log_this('Pre-run setups...')
     call initial      
@@ -54,33 +49,18 @@ program ccd_run
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
              recnum = j1/traj_dump_int + 1
-             write(traj_fd, asynchronous='yes', rec=recnum) &
-                j1, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
+            call traj_write(recnum, j1)
 
             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
-                ! Complete trajectory-file dumps so far and flush output buffer
-                wait(traj_fd)
-                flush(traj_fd)
-
-                ! Dumping to .cpt.tmp instead of *.cpt for now
-                open(newunit=cpt_fd,file='.cpt.tmp', access='sequential', form='unformatted', &
-                    status='replace', action='write')
-                    call random_seed(get = prng_seeds)
-                    write(cpt_fd) prng_seeds ! Saves current state of the PRNG. To be `put=` in `random_seeds` call...
-                    write(cpt_fd) x,y,mx,my ! Saves current state of the physical system
-                    write(cpt_fd) recnum ! Last record number of trajectory file, as of now
-                close(cpt_fd)
-                ! Atomically moving .cpt.tmp to *.cpt now
-                call execute_command_line('mv '//'.cpt.tmp '//cpt_fname, wait=.false.)
-
+                call cpt_write(recnum, jf-j1)
                 call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
              end if cpt_dump
         end if traj_dump
 
-        status_dump: if(mod(j1,status_dump_int).eq.0) then
+        for_pv: if(mod(j1,status_dump_int).eq.0) then
             write(status_fd,*,asynchronous='yes')
             flush(status_fd)
-        end if status_dump	
+        end if for_pv	
 
 	call move_noise
 
@@ -88,31 +68,19 @@ program ccd_run
 
     call timestamp(cpusec,wcsec)
 
+    call log_this('Run complete...writing final checkpoint')    
+    call cpt_write(recnum, jf-j1)
+
+    call close_traj()
+
     call log_this('Run complete...writing final config: '//final_fname)
-        ! Open final config file
-        open(newunit=final_fd, file=final_fname, access='sequential', form='formatted',status='replace', &
-            action='write')
-          final_dump: do l=1,M
-            write(final_fd,'(a,1x,i0)') '#Cell:', l
-            do i=1,N        
-				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
-				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
-                write(final_fd,*) x(l,i),y(l,i)
-            end do
-            write(final_fd,'(a,1x,i0,/)') '#End_Cell:', l
-          end do final_dump
+    call xy_dump(final_fname)
 
-    call close_files()
+        close(status_fd, status='delete')
 
-    final_cpt_hash = sha1(cpt_fname)
-    traj_hash = sha1(traj_fname)
-    write(*,nml=checksums)
+    call metadata_dump()
 
     call log_this('Done')
 
-    write(err_fd,'(/,a)') 'Performance:'
-    write(err_fd,'(a)') 'CPU = '//dhms(cpusec)
-    write(err_fd,'(a)') 'Wallclock = '//dhms(wcsec)
-    write(err_fd,'(a,1x,i0,/)') '# Threads = ', nint(cpusec/wcsec) 
-
+    call perf_dump(cpusec, wcsec, jf)
 end program ccd_run
