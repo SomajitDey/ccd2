@@ -10,7 +10,6 @@ program ccd_run
 	integer:: l,i,j1,reclen,recnum
     real:: cpusec,wcsec
     logical:: another_run_is_live
-    character(len=10):: buffer  ! Internal file
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
@@ -47,7 +46,7 @@ program ccd_run
     call timestamp()
     
     call log_this('Starting the main run')
-	timeseries: do j1=0,jf
+	timeseries: do j1=1,jf
 
     call links
 	call force
@@ -74,8 +73,7 @@ program ccd_run
                 ! Atomically moving .cpt.tmp to *.cpt now
                 call execute_command_line('mv '//'.cpt.tmp '//cpt_fname, wait=.false.)
 
-                write(buffer,'(i0)') j1
-                call log_this('Created checkpoint @ timestep = '//trim(buffer))
+                call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
              end if cpt_dump
         end if traj_dump
 

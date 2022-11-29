@@ -108,4 +108,9 @@ end subroutine timestamp
         close(tmpunit, status='delete')
     end function sha1
 
+    function int_to_char(intarg)
+        integer, intent(in) :: intarg
+        character(len=floor(log10(real(intarg)))+1) :: int_to_char
+        write(int_to_char,'(i0)') intarg
+    end function int_to_char
 end module utilities
