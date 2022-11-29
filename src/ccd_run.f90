@@ -7,7 +7,7 @@ program ccd_run
 
     implicit none
 
-	integer:: l,i,j1,reclen,recnum
+	integer:: j1,recnum=0
     real:: cpusec,wcsec
     logical:: another_run_is_live
 
@@ -48,7 +48,7 @@ program ccd_run
 	call interaction()
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
-             recnum = j1/traj_dump_int + 1
+             recnum = recnum + 1
             call traj_write(recnum, j1)
 
             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
@@ -66,14 +66,15 @@ program ccd_run
 
 	end do timeseries
 
-    call timestamp(cpusec,wcsec)
+    call log_this('Run complete. Writing final checkpoint')
+    call traj_write(recnum+1, jf)
+    call cpt_write(recnum+1, 0)
 
-    call log_this('Run complete...writing final checkpoint')    
-    call cpt_write(recnum, jf-j1)
+    call timestamp(cpusec,wcsec)
 
     call close_traj()
 
-    call log_this('Run complete...writing final config: '//final_fname)
+    call log_this('Writing final config: '//final_fname)
     call xy_dump(final_fname)
 
         close(status_fd, status='delete')
