@@ -87,6 +87,8 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -f $(DEPFILE)
 
+rebuild: clean all
+
 install:
 
 uninstall:

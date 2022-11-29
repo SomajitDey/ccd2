@@ -8,5 +8,10 @@ Work in progress
 - [fortdepend](https://github.com/ZedThree/fort_depend.py) or its [fork](https://github.com/PhyBi/fortdepend)
 - [pv](https://command-not-found.com/pv)
 
+# Build
+Use `make` as usual. Other uses: `make rebuild`, `make clean`, `make install`, `make uninstall`.
+Default compiler: `gfortran`. To use `ifort` instead, `make FC=ifort`
+To include OpenMP, set the `OMP` variable when running `make`, e.g. `make OMP=set rebuild`.
+
 # License
 No use of this software shall be made without permission from the PI, [Dr. Dipjyoti Das](mailto:dipjyoti.das@iiserkol.ac.in).
