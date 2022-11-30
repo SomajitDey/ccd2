@@ -1,6 +1,5 @@
 module files
     use iso_fortran_env, only: err_fd => error_unit
-    use parameters, only: m,n
     use state_vars
     use utilities
     implicit none
@@ -34,7 +33,7 @@ module files
         integer :: io_stat
         read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
             timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
-    if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname
+        if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_read
 
     subroutine traj_write(recnum, timepoint)
@@ -43,7 +42,7 @@ module files
         integer :: io_stat
         write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
             timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
-        if(io_stat /= 0) error stop 'Problem with writing to '//traj_fname
+        if(io_stat /= 0) error stop 'Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write
 
     subroutine close_traj()
@@ -51,16 +50,17 @@ module files
         traj_hash = sha1(traj_fname)
     end subroutine close_traj
 
-    subroutine cpt_read(timepoint, recnum, pending_steps, params_hash)
+    subroutine cpt_read(timepoint, recnum, pending_steps, params_hash, boxlen)
                 double precision, intent(out) :: timepoint
                 integer, intent(out) :: recnum, pending_steps
                 character(len=40), intent(out) :: params_hash
                 integer :: ncells, nbeads_per_cell, io_stat
+                double precision, intent(out) :: boxlen
 
                 open(newunit=cpt_fd,file=cpt_fname, access='sequential', form='unformatted', &
                     status='old', action='read', iostat=io_stat)
                 if(io_stat /= 0) error stop 'Problem with opening '//cpt_fname
-                    read(cpt_fd) ncells, nbeads_per_cell
+                    read(cpt_fd) ncells, nbeads_per_cell, boxlen
                     if(.not.(allocated(prng_seeds))) then
                         if(allocate_array_stat(ncells, nbeads_per_cell) /= 0) &
                             error stop 'Array allocation in heap encountered some problem.'
@@ -79,6 +79,7 @@ module files
     end subroutine cpt_read
     
     subroutine cpt_write(timepoint, recnum, pending_steps)
+                use parameters, only: m,n,box
                 double precision, intent(in) :: timepoint
                 integer, intent(in) :: recnum, pending_steps
 
@@ -91,7 +92,7 @@ module files
                 ! Dumping to .cpt.tmp instead of *.cpt for now
                 open(newunit=cpt_fd,file='.cpt.tmp', access='sequential', form='unformatted', &
                     status='replace', action='write')
-                    write(cpt_fd) m,n
+                    write(cpt_fd) m,n,box
                     write(cpt_fd) prng_seeds ! Saves current state of the PRNG. To be `put=` in `random_seeds` call...
                     write(cpt_fd) x,y,mx,my ! Saves current state of the physical system
                     write(cpt_fd) timepoint ! Saves current time instant for the timeseries
@@ -106,8 +107,8 @@ module files
     end subroutine cpt_write
 
     ! Dumps xy file for any frame/timestep to be consumed by third party apps like gnuplot
-    subroutine xy_dump(fname)
-        use parameters, only: box
+    subroutine xy_dump(fname, boxlen)
+        double precision, intent(in) :: boxlen
         character(len=*), intent(in) :: fname
         integer :: fd, l, i
 
@@ -116,8 +117,8 @@ module files
           do l=1,size(x,1)
             write(fd,'(a,1x,i0)') '#Cell:', l
             do i=1,size(x,2)     
-				   x(l,i) = x(l,i) - box*floor(x(l,i)/box)
-				   y(l,i) = y(l,i) - box*floor(y(l,i)/box)
+				   x(l,i) = x(l,i) - boxlen*floor(x(l,i)/boxlen)
+				   y(l,i) = y(l,i) - boxlen*floor(y(l,i)/boxlen)
                 write(fd,*) x(l,i),y(l,i)
             end do
             write(fd,'(a,1x,i0,/)') '#End_Cell:', l
