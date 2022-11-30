@@ -1,5 +1,5 @@
 #! /usr/bin/env gnuplot
-pl 'final.xy' u 1:2 w p lt -1 ps 0.2
+pl 'config.xy' u 1:2 w p lt -1 ps 0.2
 pause mouse close
 # pause 1
 # reread

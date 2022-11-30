@@ -7,6 +7,8 @@ module state_vars
     double precision, dimension(:,:), allocatable :: f_rpx,f_rpy ! Intercellular steric repulsion / volume exclusion
     double precision, dimension(:,:), allocatable :: f_adx,f_ady ! Intercellular attraction / adhesion
     integer, dimension(:), allocatable :: prng_seeds ! Stores the state of the P(seudo) R(andom) N(um) G(enerator)
+    integer :: recnum=1 ! Record number the trajectory file is currently positioned at
+    double precision :: timepoint = 0.0d0 ! Time instant (#steps x dt)
 
     contains
 

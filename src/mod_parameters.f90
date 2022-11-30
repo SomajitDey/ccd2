@@ -14,11 +14,11 @@ module parameters
     double precision, protected:: c = 0.5d0         ! c is coeff. of viscous damping      
     double precision, protected:: dt=0.001d0   ! Integration timestep
     integer, protected:: tau_align=10 ! Tau for Vicsek alignment in multiples of dt
-    integer, protected:: jf=10050000  !! No. of Iterations
+    integer, protected:: nsamples=100500  !! No. of Iterations in terms of traj_dump_int
     integer,protected:: n = 50    ! No. of beads
     integer,protected:: m = 256   ! No. of cell
 
-    namelist /params/ dt, jf, Vo, k_adh, tau_align, var,m,n
+    namelist /params/ dt, nsamples, Vo, k_adh, tau_align, var,m,n
 
     ! Ideally should not have parameter attribute. But that requires allocatable arrays with size : m,n, ncell etc.
     !TODO : Box should be derived and be present inside checkpoint and module state_vars

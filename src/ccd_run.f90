@@ -7,13 +7,13 @@ program ccd_run
 
     implicit none
 
-	integer:: j1,recnum=0
+	integer:: j1,jf
     real:: cpusec,wcsec
     logical:: another_run_is_live
 
     call assign_params(params_fname)
     call log_this('Run parameters read in')
-
+    jf=nsamples*traj_dump_int
 
     call log_this('Creating all necessary arrays (such as positions) @ heap')
     if(allocate_array_stat(m,n) /= 0) error stop 'Array allocation in heap encountered some problem.'
@@ -48,11 +48,11 @@ program ccd_run
 	call interaction()
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
-             recnum = recnum + 1
-            call traj_write(recnum, j1)
+            call traj_write(recnum, j1*dt)
+            recnum = recnum + 1 ! Update record number
 
             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
-                call cpt_write(recnum, jf-j1)
+                call cpt_write(timepoint, recnum, jf-j1)
                 call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
              end if cpt_dump
         end if traj_dump
@@ -62,22 +62,20 @@ program ccd_run
             flush(status_fd)
         end if for_pv	
 
-	call move_noise
+	call move_noise ! Update state
 
-	end do timeseries
+	timepoint = timepoint + dt ! Update timepoint
+    
+    end do timeseries
 
     call log_this('Run complete. Writing final checkpoint')
-    call traj_write(recnum+1, jf)
-    call cpt_write(recnum+1, 0)
+    call cpt_write(timepoint-dt, recnum-1, 0)
 
     call timestamp(cpusec,wcsec)
 
     call close_traj()
 
-    call log_this('Writing final config: '//final_fname)
-    call xy_dump(final_fname)
-
-        close(status_fd, status='delete')
+    close(status_fd, status='delete')
 
     call metadata_dump()
 
