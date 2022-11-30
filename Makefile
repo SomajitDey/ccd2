@@ -56,7 +56,7 @@ IMODS := omp_lib omp_lib_kinds iso_fortran_env ieee_arithmetic ieee_exceptions i
 # Where to seek prerequisites
 VPATH := $(SRC_DIR)
 
-.PHONY: all clean install uninstall
+.PHONY: all clean rebuild install uninstall
 
 all: $(EXECS)
 	@echo "\n\e[1;32mSuccess\e[0m\n"
