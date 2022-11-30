@@ -114,6 +114,7 @@ module files
 
         open(newunit=fd, file=fname, access='sequential', form='formatted',status='replace', &
             action='write')
+            write(fd,'(a,1x,es23.16)') '#Box:', boxlen
           do l=1,size(x,1)
             write(fd,'(a,1x,i0)') '#Cell:', l
             do i=1,size(x,2)     

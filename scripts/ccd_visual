@@ -1,5 +1,14 @@
-#! /usr/bin/env gnuplot
-pl 'config.xy' u 1:2 w p lt -1 ps 0.2
-pause mouse close
-# pause 1
-# reread
+#! /usr/bin/env bash
+# Brief: Plots the given config using gnuplot.
+# Usage: ccd_visual [<xy file>]
+# Default xy file: config.xy
+
+xyfile="${1:-config.xy}"
+box="$(grep '#Box:' "${xyfile}" | awk '{print $2}')"
+
+gnuplot --persist << EOF
+    set xr[0:"${box}"]
+    set yr[0:"${box}"]
+    unset tics
+    pl "${xyfile}" u 1:2 lt -1 pt 7 ps 0.5 t ""
+EOF
