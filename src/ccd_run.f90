@@ -48,7 +48,7 @@ program ccd_run
 	call interaction()
 
         traj_dump: if(mod(j1,traj_dump_int).eq.0) then
-            call traj_write(recnum, j1*dt)
+            call traj_write(recnum, timepoint)
             recnum = recnum + 1 ! Update record number
 
             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
