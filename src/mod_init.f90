@@ -1,6 +1,9 @@
 module init
 implicit none
 
+    !TODO: radius should be derived from number of beads per cell and l0
+    double precision,parameter:: radius= 1.0d0   ! Initial cell radius
+
 contains
 
 !!! Subroutine for random initial configurations
@@ -13,6 +16,8 @@ integer:: l,k1,i,t
       DOUBLE PRECISION:: rands(2)
       double precision, dimension(size(x,dim=1)) :: x1, y1
 
+!TODO : Box should be derived from num of cells, beads and rest spring length
+box = 46.0d0
 
 q = 0.5d0*dsqrt(m*7.3d0)
 dr = 0.2d0

@@ -7,13 +7,15 @@ module files
     ! File Names
     character(len=*), parameter :: traj_fname='traj.bin'
     character(len=*), parameter :: params_fname='params.in'
-    character(len=*), parameter :: status_fname='status.live'
+    character(len=*), parameter :: status_fname='status.lock'
     character(len=*), parameter :: cpt_fname='state.cpt'
     ! File Descriptors
     integer :: traj_fd, final_fd, status_fd, cpt_fd
     character(len=40) :: init_cpt_hash, final_cpt_hash, traj_hash
     
     namelist /checksums/ init_cpt_hash, final_cpt_hash, traj_hash
+
+    logical :: do_status_dump = .true. ! This flag may be set and unset using signals
     
     contains
     
@@ -50,17 +52,16 @@ module files
         traj_hash = sha1(traj_fname)
     end subroutine close_traj
 
-    subroutine cpt_read(timepoint, recnum, pending_steps, params_hash, boxlen)
+    subroutine cpt_read(timepoint, recnum, pending_steps, params_hash)
                 double precision, intent(out) :: timepoint
                 integer, intent(out) :: recnum, pending_steps
                 character(len=40), intent(out) :: params_hash
                 integer :: ncells, nbeads_per_cell, io_stat
-                double precision, intent(out) :: boxlen
 
                 open(newunit=cpt_fd,file=cpt_fname, access='sequential', form='unformatted', &
                     status='old', action='read', iostat=io_stat)
                 if(io_stat /= 0) error stop 'Problem with opening '//cpt_fname
-                    read(cpt_fd) ncells, nbeads_per_cell, boxlen
+                    read(cpt_fd) ncells, nbeads_per_cell, box
                     if(.not.(allocated(prng_seeds))) then
                         if(allocate_array_stat(ncells, nbeads_per_cell) /= 0) &
                             error stop 'Array allocation in heap encountered some problem.'
@@ -79,7 +80,7 @@ module files
     end subroutine cpt_read
     
     subroutine cpt_write(timepoint, recnum, pending_steps)
-                use parameters, only: m,n,box
+                use parameters, only: m,n
                 double precision, intent(in) :: timepoint
                 integer, intent(in) :: recnum, pending_steps
 
@@ -127,7 +128,33 @@ module files
         close(fd, status='keep')
     end subroutine xy_dump
     
+    ! Status file is a simple text file that serves to show live progress with pv as well as acts as a basic lockfile
+    logical function acquire_lock()
+        integer :: io_stat
+        open(newunit=status_fd,file=status_fname, access='sequential', form='formatted',status='new', action='write', &
+            iostat=io_stat)
+        acquire_lock = io_stat == 0
+    end function acquire_lock
+    
+    subroutine release_lock
+        close(status_fd, status='delete')
+    end subroutine release_lock
+    
     subroutine status_dump()
+        integer :: pending_dumps = 0 ! Holds number of dumps pending because of do_status_dump=.false.
+
+        if(do_status_dump)then
+            if(pending_dumps /= 0) then
+                write(status_fd, '('//int_to_char(pending_dumps)//'/)')
+            else
+                write(status_fd,*)
+            end if
+            flush(status_fd)
+            ! Flush doesn't guarantee data would be written to disk, but warrants it would be available to other processes
+            pending_dumps=0
+        else
+            pending_dumps = pending_dumps+1
+        end if
     end subroutine status_dump
     
     subroutine metadata_dump()

@@ -3,8 +3,14 @@
 # Use this command: git config --local core.hooksPath hooks/
 
 set -e # Error exit on first failure
-make rebuild FC=gfortran # Test build with gfortran
-make rebuild FC=ifort # Test build with ifort
+
+ # Test build with gfortran
+echo -e "\nBuilding with gfortran:\n"
+make rebuild FC=gfortran
+
+# Test build with ifort
+echo -e "\nBuilding with ifort:\n"
+make rebuild FC=ifort
 
 # Linting
 echo -e "\n\e[1;31mDont forget to use fortran-linter later on for inplace autofixing code style\e[;0m"

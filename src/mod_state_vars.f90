@@ -1,6 +1,7 @@
 module state_vars
     implicit none
     public
+    double precision :: box
     double precision, dimension(:,:), allocatable :: x,y ! Position coordinates of every bead
     double precision, dimension(:,:), allocatable :: mx,my ! Motility unit vector for every bead
     double precision, dimension(:,:), allocatable :: fx,fy ! Intracellular force

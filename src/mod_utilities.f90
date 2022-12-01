@@ -114,4 +114,18 @@ end subroutine timestamp
         character(len=floor(log10(real(intarg)))+1) :: int_to_char
         write(int_to_char,'(i0)') intarg
     end function int_to_char
+
+    ! Returns true if `flag` is present as a command line flag/option/argument
+    logical function cmd_line_flag(flag)
+        character(len=*), intent(in) :: flag
+        character(len=:), allocatable :: cmd_line
+        integer :: cmd_line_length
+        character(len=*), parameter :: delimiter=' ' ! Flags in a command line are always delimited
+        
+        call get_command(length=cmd_line_length)
+        allocate(character(len=cmd_line_length) :: cmd_line)
+        call get_command(command=cmd_line)
+        
+        cmd_line_flag = index(cmd_line//delimiter, delimiter//flag//delimiter) /= 0
+    end function cmd_line_flag
 end module utilities
