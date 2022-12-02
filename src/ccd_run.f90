@@ -20,13 +20,40 @@ program ccd_run
 
     call timestamp()
 
-	timeseries: do j1=1,jf
+	!$omp parallel default(shared) private(j1)
+    timeseries: do j1=1,jf
 
-    call links
-	call force
+    !$omp single
+    !TODO: Parallelize links()
+    call links()
+    !$omp end single
+    
+    !$omp single
+    !TODO: Parallelize force()
+	call force()
+    !$omp end single
+
+    !$omp single
+    !TODO: Parallelize this()
+			f_rpx=0.0d0
+			f_rpy=0.0d0
+			f_adx=0.0d0
+			f_ady=0.0d0
+    !$omp end single
+
 	call interaction()
 
-        traj_dump: if(mod(j1,traj_dump_int).eq.0) then
+    !$omp single
+    !TODO: Parallelize this()
+    f_adx = k_adh*f_adx
+    f_ady = k_adh*f_ady
+    f_rpx = k_rep*f_rpx
+    f_rpy = k_rep*f_rpy    
+    !$omp end single
+
+    !$omp sections
+    !$omp section
+    traj_dump: if(mod(j1,traj_dump_int).eq.0) then
             call traj_write(recnum, timepoint)
 
             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
@@ -37,15 +64,23 @@ program ccd_run
             recnum = recnum + 1 ! Update record number must be after cpt_dump, if any
         end if traj_dump
 
+    !$omp section
         for_pv: if(mod(j1,status_dump_int).eq.0) then
             call status_dump()
         end if for_pv	
-
-	call move_noise ! Update state
-
-	timepoint = timepoint + dt ! Update timepoint
+    !$omp end sections
     
+    !$omp single
+    !TODO: Parallelize move_noise()
+	call move_noise() ! Update state
+    !$omp end single
+
+    !$omp single
+	timepoint = timepoint + dt ! Update timepoint
+    !$omp end single
+
     end do timeseries
+    !$omp end parallel
 
     call timestamp(cpusec,wcsec)
 

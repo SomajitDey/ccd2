@@ -22,7 +22,8 @@ contains
 
          
      
-  	  do concurrent (l=1:m, i=1:n)
+  	do l=1,m
+        do i=1,n
 
                    dx1 = x(l,i-1)-x(l,i)
                    dy1 = y(l,i-1)-y(l,i)
@@ -46,6 +47,7 @@ contains
                             0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
 	  end do
+    end do
 		 
 
 	return
@@ -62,16 +64,12 @@ contains
     integer:: i,j,l,q
     double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor
 	integer:: icell,jcell,jcell0,nabor 
-	
-			f_rpx=0.0d0
-			f_rpy=0.0d0
-			f_adx=0.0d0
-			f_ady=0.0d0
-              
+             
         
         !! Loop Over All Cells !!
 
-	grids: do concurrent (icell=1:ncell)
+	!$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor, icell,jcell,jcell0,nabor)
+    grids: do icell=1,ncell
 
 			l=headcell(icell)  !! Highest ring index in a cell(icell)
 			
@@ -118,12 +116,18 @@ contains
 								fadhx = factor*dx
 								fadhy = factor*dy
 
-								f_adx(l,i) = f_adx(l,i) + fadhx
+                                !$omp flush (f_adx, f_ady)
+
+								!$omp atomic
+                                f_adx(l,i) = f_adx(l,i) + fadhx
+								!$omp atomic
 								f_adx(q,j) = f_adx(q,j) - fadhx
 
+								!$omp atomic
 						        f_ady(l,i) = f_ady(l,i) + fadhy 
+								!$omp atomic
 								f_ady(q,j) = f_ady(q,j) - fadhy
-								
+
        							end if
 
 							j=listbead(q,j) !! the next lower bead index in the q-th ring for the same cell(icell)
@@ -210,11 +214,8 @@ contains
 				l=listcell(icell,l)  !!Considering the next ring in the current cell  	
 			end do ring_a
 	end do grids		
+    !$omp end do
 	
-    f_adx = k_adh*f_adx
-    f_ady = k_adh*f_ady
-    f_rpx = k_rep*f_rpx
-    f_rpy = k_rep*f_rpy    
 
 	return
         end subroutine interaction            
