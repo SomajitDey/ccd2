@@ -104,10 +104,16 @@ contains
 				          		frepx = factor*dx
 					  			frepy = factor*dy
 
+                                !$omp flush (f_rpx, f_rpy)
+
+								!$omp atomic
 				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
+								!$omp atomic
 				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
 
+								!$omp atomic
 				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
+								!$omp atomic
 				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
@@ -176,11 +182,15 @@ contains
 				          		frepx = factor*dx
 					  			frepy = factor*dy
 
-
+                                !$omp flush (f_rpx, f_rpy)
+								!$omp atomic
 				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
+								!$omp atomic
 				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
 
+								!$omp atomic
 				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
+								!$omp atomic
 				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
                         				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
@@ -189,10 +199,15 @@ contains
 								fadhx = factor*dx
 								fadhy = factor*dy
 
+                                !$omp flush (f_adx, f_ady)
+								!$omp atomic
 								f_adx(l,i) = f_adx(l,i) + fadhx
+								!$omp atomic
 								f_adx(q,j) = f_adx(q,j) - fadhx
 
+								!$omp atomic
 						        f_ady(l,i) = f_ady(l,i) + fadhy 
+								!$omp atomic
 								f_ady(q,j) = f_ady(q,j) - fadhy
 								
        							end if
