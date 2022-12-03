@@ -1,8 +1,8 @@
-*.exe
 *.bin
 *.in
-*.live
+*.lock
 *.xy
 *.cpt
+*.xy.legacy
 build/
 .dependencies
