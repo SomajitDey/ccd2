@@ -12,7 +12,7 @@ DEPGEN := fortdepend
 DEPGEN_INSTALL_DOCS := [https://github.com/ZedThree/fort_depend.py]
 
 # Compiler Flags
-FF += -O3
+FF += -O3 -march=native
 ifeq ($(FC), gfortran)
   ifdef OMP
     FF += -fopenmp

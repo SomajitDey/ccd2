@@ -41,16 +41,16 @@ contains
 
                    l2 = dsqrt(dx2*dx2 + dy2*dy2)
 
-                   fx(l,i)=k*(l1-l0)*dx1/l1 - k*(l2-l0)*dx2/l2 - & 
-                           0.5d0*p*l0*(dy1/l1 + dy2/l2) 
+                   fx(l,i)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
+                                - 0.5d0*p*l0*(dy1/l1 + dy2/l2) 
                      
 
-                   fy(l,i)=k*(l1-l0)*dy1/l1 - k*(l2-l0)*dy2/l2 + &  
-                            0.5d0*p*l0*(dx1/l1 + dx2/l2)
+                   fy(l,i)=k*((l1-l0)*dy1/l1 - (l2-l0)*dy2/l2) &
+                                + 0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
 	  end do
     end do
-    !$omp end do
+    !$omp end do nowait
 		 
 
 	return
