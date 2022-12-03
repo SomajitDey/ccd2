@@ -17,6 +17,7 @@ program ccd_rinit
     call random_number(rands)
     rands = rands + rands - 1.0  ! random numbers in [-1, 1] 
     prng_seeds = nint(rands*clock_tick)
+    call random_seed(put = prng_seeds)
 
     call initial()
     call initial_angle()

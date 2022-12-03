@@ -12,6 +12,7 @@ contains
        integer:: i,l, tmp
        double precision:: vx,vy,wz
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
+       double precision :: factor1, factor2
 
         !$omp do private(i,l, vx,vy,wz, theta_x, theta_y, theta_sq_by_4, tmp)
        do l=1,m
@@ -29,8 +30,11 @@ contains
             theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
             
             ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
-            mx(l,i) = ((1.0d0 - theta_sq_by_4)*mx(l,i) + theta_x)/(1.0d0 + theta_sq_by_4)
-            my(l,i) = ((1.0d0 - theta_sq_by_4)*my(l,i) + theta_y)/(1.0d0 + theta_sq_by_4)
+            factor1 = 1.0d0 - theta_sq_by_4
+            factor2 = 1.0d0 + theta_sq_by_4
+            
+            mx(l,i) = (factor1*mx(l,i) + theta_x)/factor2
+            my(l,i) = (factor1*my(l,i) + theta_y)/factor2
         end do
       end do
       !$omp end do nowait
