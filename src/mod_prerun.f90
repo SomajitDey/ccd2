@@ -15,7 +15,7 @@ module prerun
         ! Holds either 'old' or 'replace', same as status= specifier in an open statement
         logical :: append_flag_present, finish_prev_run
 
-        if(.not. acquire_lock()) error stop &
+        if(.not. acquire_lock(force = (cmd_line_flag('-f') .or. cmd_line_flag('--force')))) error stop &
             'Uh-oh...seems like another run is going on in the current working directory. I better stop than mess up'
         
         call log_this('Reading initial state from '//cpt_fname)

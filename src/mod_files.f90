@@ -129,10 +129,19 @@ module files
     end subroutine xy_dump
     
     ! Status file is a simple text file that serves to show live progress with pv as well as acts as a basic lockfile
-    logical function acquire_lock()
+    logical function acquire_lock(force)
         integer :: io_stat
-        open(newunit=status_fd,file=status_fname, access='sequential', form='formatted',status='new', action='write', &
-            iostat=io_stat)
+        logical, intent(in), optional :: force
+        character(len=len('replace')) :: lock_status
+
+        if(present(force).and.force)then
+            lock_status='replace'
+        else
+            lock_status='new'
+        end if
+
+        open(newunit=status_fd,file=status_fname, access='sequential', form='formatted',status=lock_status, &
+            action='write', iostat=io_stat)
         acquire_lock = io_stat == 0
     end function acquire_lock
     

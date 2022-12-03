@@ -1,3 +1,9 @@
+! Brief: The main run engine. Produces trajectory starting from an initial state provided by a checkpoint.
+! Prerequisites: checkpoint, parameter file, trajectory to append to if --append flag is on.
+! Synopsis: ccd_run [--append | -a] [--force | -f]
+! --append : append to an existing trajectory thus extending a previous run
+! --force : ignore lockfile left behind by a previous incomplete run
+
 program ccd_run
 	use shared
     use prerun
