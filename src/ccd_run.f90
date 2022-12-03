@@ -34,28 +34,9 @@ program ccd_run
     call links()
     !$omp end single
     
-    !$omp single
-    !TODO: Parallelize force()
 	call force()
-    !$omp end single
-
-    !$omp single
-    !TODO: Parallelize this()
-			f_rpx=0.0d0
-			f_rpy=0.0d0
-			f_adx=0.0d0
-			f_ady=0.0d0
-    !$omp end single
 
 	call interaction()
-
-    !$omp single
-    !TODO: Parallelize this()
-    f_adx = k_adh*f_adx
-    f_ady = k_adh*f_ady
-    f_rpx = k_rep*f_rpx
-    f_rpy = k_rep*f_rpy    
-    !$omp end single
 
     !$omp sections
     !$omp section

@@ -7,6 +7,7 @@ module prerun
         use state_vars
         use parameters
         use files
+        use omp_lib, only: omp_get_max_threads
         
         integer, intent(out) :: jf
         integer :: pending_steps
@@ -48,5 +49,7 @@ module prerun
 
         if(finish_prev_run) call log_this('Continuing with the incomplete previous run')
         if(append_flag_present) call log_this('Extending the existing trajectory @ '//traj_fname)
+
+        !$ call log_this('Using '//int_to_char(int(omp_get_max_threads(), kind=kind(jf)))//' OpenMP threads')
     end subroutine prerun_setup
 end module prerun

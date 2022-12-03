@@ -9,20 +9,22 @@ contains
 	use shared	
 	
 
-	integer:: i,j,l
+	integer:: i,l
         double precision::l1,l2,dx1,dx2,dy1,dy2
    
-        ! boundary condition
-	
-          x(:,0) = x(:,n)
-          y(:,0) = y(:,n)
-          x(:,n+1) = x(:,1)
-          y(:,n+1) = y(:,1)
           
 
          
      
+    !$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2)
   	do l=1,m
+        ! boundary condition
+	
+          x(l,0) = x(l,n)
+          y(l,0) = y(l,n)
+          x(l,n+1) = x(l,1)
+          y(l,n+1) = y(l,1)
+
         do i=1,n
 
                    dx1 = x(l,i-1)-x(l,i)
@@ -48,6 +50,7 @@ contains
 
 	  end do
     end do
+    !$omp end do
 		 
 
 	return
@@ -65,7 +68,15 @@ contains
     double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor
 	integer:: icell,jcell,jcell0,nabor 
              
-        
+    !$omp do private(l)
+        do l=1,m
+			f_rpx(l,:)=0.0d0
+			f_rpy(l,:)=0.0d0
+			f_adx(l,:)=0.0d0
+			f_ady(l,:)=0.0d0
+        end do
+    !$omp end do nowait
+
         !! Loop Over All Cells !!
 
 	!$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor, icell,jcell,jcell0,nabor)
@@ -231,6 +242,14 @@ contains
 	end do grids		
     !$omp end do
 	
+    !$omp do private(l)
+    do l=1,m
+    f_adx(l,:) = k_adh*f_adx(l,:)
+    f_ady(l,:) = k_adh*f_ady(l,:)
+    f_rpx(l,:) = k_rep*f_rpx(l,:)
+    f_rpy(l,:) = k_rep*f_rpy(l,:)
+    end do
+    !$omp end do
 
 	return
         end subroutine interaction            
