@@ -19,7 +19,11 @@ jobs:
             sudo apt-get install intel-oneapi-compiler-fortran
             source /opt/intel/oneapi/setvars.sh
             printenv >> $GITHUB_ENV
-      - name: Building with FC=gfortran OMP=set
+      - name: Building with FC=gfortran OMP=unset
+        run: make
+      - name: ReBuilding with FC=ifort OMP=unset
+        run: make rebuild FC=ifort
+      - name: Rebuilding with FC=gfortran OMP=set
         run: make OMP=set
       - name: ReBuilding with FC=ifort OMP=set
         run: make rebuild FC=ifort OMP=set

@@ -55,12 +55,12 @@ program ccd_run
         for_pv: if(mod(j1,status_dump_int).eq.0) then
             call status_dump()
         end if for_pv	
+
+    !$omp section
+             CALL gasdev(noise,mean,var)
     !$omp end sections
     
-    !$omp single
-    !TODO: Parallelize move_noise()
 	call move_noise() ! Update state
-    !$omp end single
 
     !$omp single
 	timepoint = timepoint + dt ! Update timepoint

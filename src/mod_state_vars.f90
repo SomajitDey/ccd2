@@ -7,6 +7,7 @@ module state_vars
     double precision, dimension(:,:), allocatable :: fx,fy ! Intracellular force
     double precision, dimension(:,:), allocatable :: f_rpx,f_rpy ! Intercellular steric repulsion / volume exclusion
     double precision, dimension(:,:), allocatable :: f_adx,f_ady ! Intercellular attraction / adhesion
+    double precision, dimension(:), allocatable :: noise
     integer, dimension(:), allocatable :: prng_seeds ! Stores the state of the P(seudo) R(andom) N(um) G(enerator)
     integer :: recnum=1 ! Record number the trajectory file is currently positioned at
     double precision :: timepoint = 0.0d0 ! Time instant (#steps x dt)
@@ -25,6 +26,7 @@ module state_vars
             fx(1:cellnum, 1:beadnum), fy(1:cellnum, 1:beadnum), &
             f_rpx(1:cellnum, 1:beadnum), f_rpy(1:cellnum, 1:beadnum), &
             f_adx(1:cellnum, 1:beadnum), f_ady(1:cellnum, 1:beadnum), &
+            noise(1:cellnum*beadnum), &
             prng_seeds(seeds_size), &
             stat=allocate_array_stat )
         ! 0:beadnum+1 is to expand a circular array into linear one later in force

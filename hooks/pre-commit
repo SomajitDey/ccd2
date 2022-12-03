@@ -4,7 +4,15 @@
 
 set -e # Error exit on first failure
 
- # Test build with gfortran and OpenMP
+# Test build with gfortran and OpenMP
+echo -e "\nBuilding with gfortran:\n"
+make rebuild FC=gfortran
+
+# Test build with gfortran and OpenMP
+echo -e "\nBuilding with ifort:\n"
+make rebuild FC=ifort
+
+# Test build with gfortran and OpenMP
 echo -e "\nBuilding with gfortran and OpenMP:\n"
 make rebuild FC=gfortran OMP=set
 
