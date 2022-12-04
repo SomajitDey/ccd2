@@ -48,7 +48,7 @@ else ifeq ($(FC), ifort)
 endif 
 
 # Target executable(s)
-EXECS := ccd_run ccd_cpt_to_xy ccd_rinit
+EXECS := ccd_run ccd_cpt_to_xy ccd_rinit ccd_traj_to_legacy
 EXECS := $(addprefix $(BUILD_DIR)/, $(EXECS))
 
 # Dependency file to be generated using `fortdepend`

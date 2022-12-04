@@ -36,6 +36,8 @@ module prerun
         
         if(finish_prev_run .or. append_flag_present) then
             traj_status='old'
+            recnum=recnum+1
+            timepoint=timepoint+dt
         else
             traj_status='replace'
             recnum = 1
