@@ -88,7 +88,6 @@ module files
                 wait(traj_fd)
                 flush(traj_fd)
 
-                call random_seed(get = prng_seeds)
 
                 ! Dumping to .cpt.tmp instead of *.cpt for now
                 open(newunit=cpt_fd,file='.cpt.tmp', access='sequential', form='unformatted', &
@@ -159,7 +158,8 @@ module files
                 write(status_fd,*)
             end if
             flush(status_fd)
-            ! Flush doesn't guarantee data would be written to disk, but warrants it would be available to other processes
+            ! Flush doesn't guarantee data would be written to disk, 
+            ! but warrants it would be available to other processes
             pending_dumps=0
         else
             pending_dumps = pending_dumps+1

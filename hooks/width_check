@@ -2,4 +2,4 @@
 # Brief: This script outputs line in given fortran code that has width > 120 cols.
 # This is basically a check for compatibility with the prescribed style guide.
 # Synopsis: <this> <file.f90>
-grep -i --color todo "${1}"
+cat "${@}" | sed -n '/\(.\)\{120\}/p'

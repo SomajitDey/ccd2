@@ -1,8 +1,9 @@
 ! Brief: The main run engine. Produces trajectory starting from an initial state provided by a checkpoint.
 ! Prerequisites: checkpoint, parameter file, trajectory to append to if --append flag is on.
-! Synopsis: ccd_run [--append | -a] [--force | -f]
+! Synopsis: ccd_run [--append | -a] [--force | -f] [-n | --no-status-dump]
 ! --append : append to an existing trajectory thus extending a previous run
 ! --force : ignore lockfile left behind by a previous incomplete run
+! --no-status-dump : Doesn't show live progess. This makes the run faster. 
 
 program ccd_run
 	use shared
@@ -29,9 +30,16 @@ program ccd_run
 	!$omp parallel default(shared) private(j1)
     timeseries: do j1=1,jf
 
+    !TODO: Turning the 2 omp singles below into omp sections gives either seg fault or divide by 0 error. Understand why. 
+    
     !$omp single
-    !TODO: Parallelize links()
+    !links() couldn't be parallelized as most of it needs to run sequentially
     call links()
+    !$omp end single nowait
+    
+    !$omp single
+        call random_seed(get = prng_seeds)
+             CALL gasdev(noise,mean,var) ! Updates prng_seeds as side-effect        
     !$omp end single
     
 	call force()
@@ -55,17 +63,6 @@ program ccd_run
         for_pv: if(mod(j1,status_dump_int).eq.0) then
             call status_dump()
         end if for_pv
-
-    !$omp section
-             CALL gasdev(noise,mean,var) ! Updates prng_seeds as side-effect
-
-    ! Note that when one thread updates prng_seeds another is writing prng_seeds at cpt_dump.
-    ! But this should not be of concern as multithread runs are not exactly reproducible anyway
-    ! because of race conditions between threads. Order of computations may not be the same
-    ! between computations, and we already know a+b /= b+a. Also gfortran implements separate
-    ! random_number seeds for different threads.
-    
-    ! The point of saving prng_seeds is only to reproduce serial runs
     !$omp end sections
     
 	call move_noise() ! Update state

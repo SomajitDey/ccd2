@@ -7,7 +7,7 @@ module prerun
         use state_vars
         use parameters
         use files
-        use omp_lib, only: omp_get_max_threads
+        !$ use omp_lib, only: omp_get_max_threads
         
         integer, intent(out) :: jf
         integer :: pending_steps
@@ -27,6 +27,9 @@ module prerun
         if((size(x,1) /= m).or.(size(x,2) /= n+2)) error stop &
             'System size as read in from checkpoint: '//cpt_fname// &
                 ' does not match that given in parameter file: '//params_fname
+
+        if((rc_adh .gt. box/2) .or. (rc_rep .gt. box/2)) error stop &
+            'Minimum image convention is at stake. Make box bigger than 2 x interaction-cutoff.'
 
         append_flag_present = cmd_line_flag('-a') .or. cmd_line_flag('--append')
         finish_prev_run = (pending_steps /= 0) .and. (params_hash == sha1(params_fname))
@@ -51,5 +54,7 @@ module prerun
         if(append_flag_present) call log_this('Extending the existing trajectory @ '//traj_fname)
 
         !$ call log_this('Using '//int_to_char(int(omp_get_max_threads(), kind=kind(jf)))//' OpenMP threads')
+        
+        do_status_dump = .not. (cmd_line_flag('-n') .or. cmd_line_flag('--no-status-dump'))
     end subroutine prerun_setup
 end module prerun

@@ -1,3 +1,5 @@
+!TODO: Check if memory can be freed by deallocating
+!TODO: Check if shared module is really required. All 'use module' statement must have 'only:'
 module shared
     use utilities
     use parameters
