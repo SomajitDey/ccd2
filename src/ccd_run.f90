@@ -30,16 +30,19 @@ program ccd_run
 	!$omp parallel default(shared) private(j1)
     timeseries: do j1=1,jf
 
-    !TODO: Turning the 2 omp singles below into omp sections gives either seg fault or divide by 0 error. Understand why. 
+    !TODO: Turning the 2 omp singles below into omp sections gives either seg fault or divide by 0 error. Why? 
     
-    !$omp single
-    !links() couldn't be parallelized as most of it needs to run sequentially
-    call links()
-    !$omp end single nowait
-    
-    !$omp single
+    !$omp master
+        ! Master makes sure random_number is called from a particular thread alone, i.e. the master thread.
+        ! This is important as gfortran provides different prng sequences (different seeds) for different threads.
         call random_seed(get = prng_seeds)
              CALL gasdev(noise,mean,var) ! Updates prng_seeds as side-effect        
+    !$omp end master
+
+    !$omp single
+    ! links() couldn't be parallelized as most of it needs to run sequentially. 
+    ! omp ordered would just increase overhead.
+    call links()
     !$omp end single
     
 	call force()
