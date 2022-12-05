@@ -3,7 +3,7 @@
 ! key = value
 ! key = value
 Vo = 0.0
-nsamples = 1
+nsamples = 1000
 
 / ! This is the end statement
 
