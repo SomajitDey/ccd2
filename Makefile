@@ -7,6 +7,9 @@ FC := gfortran
 # The following must have non-empty value if OpenMP is required
 OMP :=
 
+# The following must have non-empty value if Debugging compiler options are required
+DEBUG :=
+
 # Dependency Generator
 DEPGEN := fortdepend
 DEPGEN_INSTALL_DOCS := [https://github.com/ZedThree/fort_depend.py]
@@ -18,6 +21,10 @@ ifeq ($(FC), gfortran)
     FF += -fopenmp
   endif
 else ifeq ($(FC), ifort)
+  # FF += -heap-arrays
+  ifdef DEBUG
+  FF += -fp-stack-check -g -traceback -check bounds
+  endif
   ifdef OMP
     FF += -qopenmp
   endif
