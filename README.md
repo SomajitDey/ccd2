@@ -11,9 +11,40 @@ Work in progress
 - [pv](https://command-not-found.com/pv) for showing real-time progress bar
 
 # Build
-Use `make` as usual. Other uses: `make rebuild`, `make clean`, `make install`, `make uninstall`.
+Use `make` as usual. Other uses: `make rebuild`, `make clean`.
 Default compiler: `gfortran`. To use `ifort` instead, `make FC=ifort`
 To include OpenMP, set the `OMP` variable when running `make`, e.g. `make OMP=set rebuild`.
+
+# Install
+`make install`
+
+If you don't want to install it right away but test: `. setup_test_env.sh`
+
+# Uninstall
+`make uninstall`
+
+# Command-line
+`ccd`
+
+# Sample Workflow
+Edit the `params.in` file. Put only those key-value pairs that you don't want the default for.
+
+```bash
+# Random initialization
+ccd rinit
+
+# Run
+ccd run [-a | --append] [-n | --no-status-dump] [-f | --force]
+
+# Checkpoint to XY dump
+ccd cpt_to_xy
+
+# Visualize using gnuplot
+ccd visual
+
+# To check live run progress
+ccd status
+```
 
 # Note
 If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited`.

@@ -1,0 +1,10 @@
+#! /usr/bin/env bash
+subcmd="${1}"
+
+if [[ -z "${subcmd}" ]]; then
+    echo 'Press <Tab> twice after `ccd <space>` to know the available commands'
+    exit
+fi
+
+shift
+"ccd_${subcmd}" "${@}"

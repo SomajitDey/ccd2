@@ -58,6 +58,10 @@ endif
 EXECS := ccd_run ccd_cpt_to_xy ccd_rinit ccd_traj_to_legacy
 EXECS := $(addprefix $(BUILD_DIR)/, $(EXECS))
 
+# List of all executable scripts
+SCRIPT_DIR := scripts
+SCRIPTS := $(wildcard $(SCRIPT_DIR)/*)
+
 # Dependency file to be generated using `fortdepend`
 DEPFILE := .dependencies
 
@@ -72,6 +76,9 @@ NOCOLOR='\e[0m'
 
 # Where to seek prerequisites
 VPATH := $(SRC_DIR)
+
+# System path where executables would be installed
+INSTALL_PATH := /usr/local/bin
 
 # Shell which runs the recipes
 SHELL := bash
@@ -116,5 +123,8 @@ clean:
 rebuild: clean all
 
 install:
+	sudo install -t $(INSTALL_PATH) $(EXECS) $(SCRIPTS)
 
 uninstall:
+	sudo rm $(addprefix $(INSTALL_PATH)/, $(notdir $(EXECS)))
+	sudo rm $(addprefix $(INSTALL_PATH)/, $(notdir $(SCRIPTS)))
