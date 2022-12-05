@@ -20,7 +20,6 @@ module parameters
 
     namelist /params/ dt, nsamples, Vo, k_adh, tau_align, var,m,n
 
-    double precision,parameter:: rcut= 1.50d0 
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
     integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval

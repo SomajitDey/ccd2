@@ -10,6 +10,7 @@ module grid_linked_list
 	   integer, dimension(:), allocatable:: headcell
        integer, dimension(:,:), allocatable:: headbead,listcell,listbead
        private :: grid_index
+       double precision,private:: rcut 
        
     contains
     
@@ -24,8 +25,11 @@ module grid_linked_list
 	subroutine maps()
 	integer:: ix,iy,imap,alloc_stat
 
+    rcut = (l0/dsin(pi/n) + rc_adh)/2.d0
+    ! Anything other than 2.d0 above is either slowing the run down 
+    ! or creating seg fault because HeadCell(1) gives gibberish: -largest integer
+    
     w=int(box/rcut)
-    !TODO: rcut should be derived from number of beads per cell and l0
 	celli = dble(w/box) !! celli is the inverse of cell length
 	if((1.d0/celli).lt.rcut) error stop 'Grid size too small compared to interaction cut-off'
     ncell=w*w

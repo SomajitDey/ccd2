@@ -117,7 +117,7 @@ module files
             write(fd,'(a,1x,es23.16)') '#Box:', boxlen
           do l=1,size(x,1)
             write(fd,'(a,1x,i0)') '#Cell:', l
-            do i=1,size(x,2)     
+            do i=1,size(x,2) -2    
 				   x(l,i) = x(l,i) - boxlen*floor(x(l,i)/boxlen)
 				   y(l,i) = y(l,i) - boxlen*floor(y(l,i)/boxlen)
                 write(fd,*) x(l,i),y(l,i)
