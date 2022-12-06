@@ -1,0 +1,38 @@
+#! /usr/bin/env bash
+
+archive_path="${HOME}/.ccd"
+archive_path_traj="${archive_path}/trajectories"
+archive_path_cpt="${archive_path}/checkpoints"
+
+local_traj_path="traj.bin"
+local_cpt_path="state.cpt"
+
+hashf(){
+    sha1sum "${1}" | cut -d ' ' -f 1
+}
+
+archive(){
+    echo "Archiving ${local_traj_path} and ${local_cpt_path}" >&2
+    mv -f "${local_traj_path}" "${archive_path_traj}/$(hashf "${local_traj_path}")" || rm "${local_traj_path}"
+    mv -f "${local_cpt_path}" "${archive_path_cpt}/$(hashf "${local_cpt_path}")" || rm "${local_cpt_path}"
+}
+
+extract(){
+    local metadata_path="${1}"
+    traj_hash="$(grep TRAJ_HASH "${metadata_path}" | grep -o '[0-9a-f]*')"
+    cpt_hash="$(grep FINAL_CPT_HASH "${metadata_path}" | grep -o '[0-9a-f]*')"
+    echo "Extracting ${local_traj_path} and ${local_cpt_path} referred in metadata file: ${metadata_path}" >&2
+    ln -vi "${archive_path_traj}/${traj_hash}" "${local_traj_path}"
+    ln -vi "${archive_path_cpt}/${cpt_hash}" "${local_cpt_path}"
+}
+
+mkdir -p "${archive_path_traj}"
+mkdir -p "${archive_path_cpt}"
+
+metadata_path="${1}"
+
+if [[ -n "${metadata_path}" ]]; then
+    extract "${metadata_path}"
+else
+    archive
+fi

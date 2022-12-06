@@ -42,7 +42,7 @@ source the `ccd_completion.sh` script for `<TAB>` completion of the following co
 ccd rinit
 
 # Run
-ccd run [-a | --append] [-n | --no-status-dump] [-f | --force]
+ccd run [-a | --append] [-n | --no-status-dump] [-f | --force] > metadata.txt 2> logfile.txt
 
 # Checkpoint to XY dump
 ccd cpt_to_xy
@@ -52,6 +52,12 @@ ccd visual
 
 # To check live run progress
 ccd status
+
+# To archive run results (trajectory: traj.bin and final-state/checkpoint: state.cpt)
+ccd archive
+
+# To extract archived run results
+ccd archive metadata.txt
 ```
 
 # Note
