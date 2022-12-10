@@ -4,8 +4,6 @@
 
 set -e # Error exit on first failure
 
-. setup_test_env.sh
-
 # Test build with gfortran and OpenMP
 echo -e "\nBuilding with gfortran:\n"
 make rebuild FC=gfortran
@@ -21,6 +19,10 @@ make rebuild FC=gfortran OMP=set
 # Test build with ifort and OpenMP
 echo -e "\nBuilding with ifort and OpenMP:\n"
 make rebuild FC=ifort OMP=set
+
+# Test environment setup script
+echo -e "\nSourcing the test environment setup script:\n"
+. setup_test_env.sh
 
 # Linting
 echo -e "\n\e[1;31mDont forget to use fortran-linter later on for inplace autofixing code style\e[;0m"

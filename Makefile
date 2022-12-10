@@ -38,6 +38,9 @@ else ifeq ($(LD), ifort)
   LF += -qopenmp
 endif
 
+# Package name
+PACKAGE := ccd
+
 # List of all source files
 SRC_DIR := src
 SRCS := $(notdir $(wildcard $(SRC_DIR)/*.f90))
@@ -55,12 +58,19 @@ else ifeq ($(FC), ifort)
 endif 
 
 # Target executable(s)
-EXECS := ccd_run ccd_cpt_to_xy ccd_rinit ccd_traj_to_legacy
+EXECS := $(basename $(filter $(PACKAGE)_%, $(SRCS)))
 EXECS := $(addprefix $(BUILD_DIR)/, $(EXECS))
 
 # List of all executable scripts
 SCRIPT_DIR := scripts
-SCRIPTS := $(wildcard $(SCRIPT_DIR)/*)
+SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*)
+
+# Path to driver
+DRIVER := $(SCRIPT_DIR)/ccd
+
+# Bash Completion script
+SUBCMDS := $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS)))
+BASHCOMP := $(PACKAGE)_completion.sh
 
 # Dependency file to be generated using `fortdepend`
 DEPFILE := .dependencies
@@ -79,16 +89,17 @@ VPATH := $(SRC_DIR)
 
 # System path where executables would be installed
 INSTALL_PATH := /usr/local/bin
+BASHCOMP_INSTALL_PATH := /etc/bash_completion.d
 
 # Shell which runs the recipes
 SHELL := bash
 
 .PHONY: all clean rebuild install uninstall $(DEPGEN)
 
-all: $(EXECS)
+all: $(EXECS) $(BASHCOMP)
 	@echo -e \\n$(GREEN)"make: Success"$(NOCOLOR)
 
-$(EXECS): % : %.o $(filter-out $(BUILD_DIR)/ccd_%.o, $(OBJS))
+$(EXECS): % : %.o $(filter-out $(BUILD_DIR)/$(PACKAGE)_%.o, $(OBJS))
 	$(LD) $(LF) -o $@ $^
 	@echo -e $(BLUE)"make: Built $@"$(NOCOLOR)
 
@@ -104,7 +115,7 @@ $(BUILD_DIR):
 
 # Generate fresh dependency file whenever the codebase (sources) is modified or this Makefile changes
 $(DEPFILE): $(SRCS) $(MAKEFILE_LIST) | $(DEPGEN)
-	@echo 'Generating dependencies:'
+	@echo -e $(BLUE)"make: Generating dependencies:"$(NOCOLOR)
 	$(DEPGEN) --files $(addprefix $(SRC_DIR)/,$(SRCS)) --build $(BUILD_DIR) --ignore-modules $(IMODS) --output $(DEPFILE) --overwrite
 
 # Define dependencies between object files
@@ -114,17 +125,26 @@ $(DEPFILE): $(SRCS) $(MAKEFILE_LIST) | $(DEPGEN)
 include $(DEPFILE)
 
 $(DEPGEN):
-	@which $@ > /dev/null || { echo -e $(RED)"Make: Please install $@ first. $(DEPGEN_INSTALL_DOCS)"$(NOCOLOR) && false;}
+	@which $@ > /dev/null || { echo -e $(RED)"make: Please install $@ first. $(DEPGEN_INSTALL_DOCS)"$(NOCOLOR) && false;}
+
+$(BASHCOMP):
+	@echo -e $(BLUE)"make: Creating Bash completion script: $(BASHCOMP)"$(NOCOLOR)
+	@echo -e "# This is the bash-completion script for command: $(PACKAGE)\n\
+	complete -W '$(SUBCMDS)' $(PACKAGE)" > $(BASHCOMP)
 
 clean: 
 	rm -rf $(BUILD_DIR)
-	rm -f $(DEPFILE)
+	rm -f $(DEPFILE) $(BASHCOMP)
 
 rebuild: clean all
 
 install:
-	sudo install -t $(INSTALL_PATH) $(EXECS) $(SCRIPTS)
+	@sudo mkdir $(INSTALL_PATH)/$(PACKAGE)_ || { echo -e $(RED)"make: Uninstall earlier installation first"$(NOCOLOR) && false;}
+	sudo install -t $(INSTALL_PATH)/$(PACKAGE)_ $(EXECS) $(SCRIPTS)
+	sudo install -T $(DRIVER) $(INSTALL_PATH)/$(PACKAGE)
+	sudo install -t $(BASHCOMP_INSTALL_PATH) $(BASHCOMP)
 
 uninstall:
-	sudo rm $(addprefix $(INSTALL_PATH)/, $(notdir $(EXECS)))
-	sudo rm $(addprefix $(INSTALL_PATH)/, $(notdir $(SCRIPTS)))
+	sudo rm $(INSTALL_PATH)/$(PACKAGE)
+	sudo rm -rf $(INSTALL_PATH)/$(PACKAGE)_
+	sudo rm $(BASHCOMP_INSTALL_PATH)/$(BASHCOMP)

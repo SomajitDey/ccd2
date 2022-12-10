@@ -6,3 +6,4 @@
 *.xy.legacy
 build/
 .dependencies
+ccd_completion.sh
