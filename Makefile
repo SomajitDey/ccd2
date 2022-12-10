@@ -66,7 +66,7 @@ SCRIPT_DIR := scripts
 SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*)
 
 # Path to driver
-DRIVER := $(SCRIPT_DIR)/ccd
+DRIVER := $(SCRIPT_DIR)/package
 
 # Bash Completion script
 SUBCMDS := $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS)))
@@ -131,10 +131,12 @@ $(BASHCOMP):
 	@echo -e $(BLUE)"make: Creating Bash completion script: $(BASHCOMP)"$(NOCOLOR)
 	@echo -e "# This is the bash-completion script for command: $(PACKAGE)\n\
 	complete -W '$(SUBCMDS)' $(PACKAGE)" > $(BASHCOMP)
+	@ln $(DRIVER) $(SCRIPT_DIR)/$(PACKAGE)
 
 clean: 
 	rm -rf $(BUILD_DIR)
 	rm -f $(DEPFILE) $(BASHCOMP)
+	rm -f $(SCRIPT_DIR)/$(PACKAGE)
 
 rebuild: clean all
 

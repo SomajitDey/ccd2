@@ -13,14 +13,17 @@ whereami(){
 }
 this_script_is_at="$(whereami)"
 
-subcmd="${1}"
+invocation="${0}"
+package="${invocation##*/}"
 
-export PATH="${this_script_is_at}/ccd_:${PATH}"
+export PATH="${this_script_is_at}/${package}_:${PATH}"
+
+subcmd="${1}"
+shift
 
 if [[ -z "${subcmd}" ]]; then
-    echo 'Press <Tab> twice after `ccd <space>` to know the available commands'
+    echo 'Press <Tab> twice after `'${package}' <space>` to know the available commands'
     exit
 fi
 
-shift
-"ccd_${subcmd}" "${@}"
+${package}_${subcmd} "${@}"
