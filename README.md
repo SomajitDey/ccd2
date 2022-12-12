@@ -39,7 +39,7 @@ source the `ccd_completion.sh` script for `<TAB>` completion of the following co
 
 ```bash
 # Random initialization
-ccd rinit
+ccd init
 
 # Run
 ccd run [-a | --append] [-n | --no-status-dump] [-f | --force] > metadata.txt 2> logfile.txt

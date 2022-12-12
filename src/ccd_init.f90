@@ -1,4 +1,4 @@
-program ccd_rinit
+program ccd_init
     use parameters
     use state_vars
     use init
@@ -23,4 +23,4 @@ program ccd_rinit
     call initial_angle()
     
     call cpt_write(timepoint, recnum, 0)
-end program ccd_rinit
+end program ccd_init
