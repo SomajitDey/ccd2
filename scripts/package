@@ -17,13 +17,18 @@ invocation="${0}"
 package="${invocation##*/}"
 
 export PATH="${this_script_is_at}/${package}_:${PATH}"
+[[ -n "${PARAMS_FILE}" ]] || PARAMS_FILE="params.in"
+export PARAMS_FILE
+sed '1i &params ! Namelist header' <(cat "${PARAMS_FILE}" 2>/dev/null; echo) > .params.in
+echo '/ ! Namelist footer' >> .params.in
 
 subcmd="${1}"
 shift
 
 if [[ -z "${subcmd}" ]]; then
-    echo 'Press <Tab> twice after `'${package}' <space>` to know the available commands'
-    exit
+  echo 'Press <Tab> twice after `'${package}' <space>` to know the available commands'
+else
+  ${package}_${subcmd} "${@}"
 fi
 
-${package}_${subcmd} "${@}"
+rm -f .params.in

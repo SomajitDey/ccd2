@@ -1,9 +1,6 @@
-&params ! This is the start statement
+! This is a comment line
+! This file contains key value pairs of the form:
+! key = value
 
-! key = value
-! key = value
 Vo = 0.0
-nsamples = 1
-
-/ ! This is the end statement
-
+nsamples = 3

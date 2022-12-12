@@ -6,7 +6,7 @@ module files
     public
     ! File Names
     character(len=*), parameter :: traj_fname='traj.bin'
-    character(len=*), parameter :: params_fname='params.in'
+    character(len=*), parameter :: params_fname='.params.in'
     character(len=*), parameter :: status_fname='status.lock'
     character(len=*), parameter :: cpt_fname='state.cpt'
     ! File Descriptors

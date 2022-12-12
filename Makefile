@@ -65,8 +65,9 @@ EXECS := $(addprefix $(BUILD_DIR)/, $(EXECS))
 SCRIPT_DIR := scripts
 SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*)
 
-# Path to driver
-DRIVER := $(SCRIPT_DIR)/package
+# Path to the DRIVER script that represents the entire package
+DRIVER_TEMPLATE := $(SCRIPT_DIR)/package
+DRIVER := $(SCRIPT_DIR)/$(PACKAGE)
 
 # Bash Completion script
 SUBCMDS := $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS)))
@@ -88,7 +89,10 @@ NOCOLOR='\e[0m'
 VPATH := $(SRC_DIR)
 
 # System path where executables would be installed
-INSTALL_PATH := /usr/local/bin
+# The following must be a system path that exists. `Main` basically means the `Driver`.
+INSTALL_PATH_MAIN := /usr/local/bin
+# The following must be a custom directory that doesn't exist by default such that it's existence implies previous installation
+INSTALL_PATH_INTERNALS := $(INSTALL_PATH_MAIN)/$(PACKAGE)_
 BASHCOMP_INSTALL_PATH := /etc/bash_completion.d
 
 # Shell which runs the recipes
@@ -96,7 +100,7 @@ SHELL := bash
 
 .PHONY: all clean rebuild install uninstall $(DEPGEN)
 
-all: $(EXECS) $(BASHCOMP)
+all: $(EXECS) $(BASHCOMP) $(DRIVER)
 	@echo -e \\n$(GREEN)"make: Success"$(NOCOLOR)
 
 $(EXECS): % : %.o $(filter-out $(BUILD_DIR)/$(PACKAGE)_%.o, $(OBJS))
@@ -131,22 +135,26 @@ $(BASHCOMP):
 	@echo -e $(BLUE)"make: Creating Bash completion script: $(BASHCOMP)"$(NOCOLOR)
 	@echo -e "# This is the bash-completion script for command: $(PACKAGE)\n\
 	complete -W '$(SUBCMDS)' $(PACKAGE)" > $(BASHCOMP)
-	@ln $(DRIVER) $(SCRIPT_DIR)/$(PACKAGE)
 
-clean: 
+$(DRIVER): $(EXECS) $(SCRIPTS)
+	@echo -e $(BLUE)"make: Creating driver script with version info: $(DRIVER)"$(NOCOLOR)
+	@cat $(DRIVER_TEMPLATE) <(echo "echo '$(PACKAGE) Build Version: $$(sha1sum $(EXECS) $(SCRIPTS) | awk NF=1 | sha1sum | awk NF=1)'") \
+		> $(DRIVER)
+	chmod +x $(DRIVER)
+
+clean:
 	rm -rf $(BUILD_DIR)
-	rm -f $(DEPFILE) $(BASHCOMP)
-	rm -f $(SCRIPT_DIR)/$(PACKAGE)
+	rm -f $(DEPFILE) $(BASHCOMP) $(DRIVER)
 
 rebuild: clean all
 
 install:
-	@sudo mkdir $(INSTALL_PATH)/$(PACKAGE)_ || { echo -e $(RED)"make: Uninstall earlier installation first"$(NOCOLOR) && false;}
-	sudo install -t $(INSTALL_PATH)/$(PACKAGE)_ $(EXECS) $(SCRIPTS)
-	sudo install -T $(DRIVER) $(INSTALL_PATH)/$(PACKAGE)
+	@sudo mkdir $(INSTALL_PATH_INTERNALS) || { echo -e $(RED)"make: Uninstall earlier installation first"$(NOCOLOR) && false;}
+	sudo install -t $(INSTALL_PATH_INTERNALS) $(EXECS) $(SCRIPTS)
+	sudo install -T $(DRIVER) $(INSTALL_PATH_MAIN)/$(PACKAGE)
 	sudo install -t $(BASHCOMP_INSTALL_PATH) $(BASHCOMP)
 
 uninstall:
-	sudo rm $(INSTALL_PATH)/$(PACKAGE)
-	sudo rm -rf $(INSTALL_PATH)/$(PACKAGE)_
+	sudo rm $(INSTALL_PATH_MAIN)/$(PACKAGE)
+	sudo rm -rf $(INSTALL_PATH_INTERNALS)
 	sudo rm $(BASHCOMP_INSTALL_PATH)/$(BASHCOMP)
