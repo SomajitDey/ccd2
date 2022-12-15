@@ -76,7 +76,7 @@ contains
         end do
     !$omp end do nowait
 
-    ! call init_ring_nb() !TODO: until init_ring_nb is parallelized
+    if(store_ring_nb) call init_ring_nb()
 
         !! Loop Over All Cells !!
 
@@ -120,7 +120,7 @@ contains
 
 				          		if(store_ring_nb) call assert_are_nb_rings(l, q)
                                 
-                                factor = (r-rc_rep)/r
+                                factor = k_rep*(r-rc_rep)/r
 				          		frepx = factor*dx
 					  			frepy = factor*dy
 
@@ -134,7 +134,7 @@ contains
 
                                 if(store_ring_nb) call assert_are_nb_rings(l, q)
                                 
-                                factor = (rc_adh-r)/r
+                                factor = k_adh*(rc_adh-r)/r
 								fadhx = factor*dx
 								fadhy = factor*dy
 
@@ -159,15 +159,6 @@ contains
 	end do grids		
     !$omp end do
 	
-    !$omp do private(l)
-    do l=1,m
-    f_adx(l,:) = k_adh*f_adx(l,:)
-    f_ady(l,:) = k_adh*f_ady(l,:)
-    f_rpx(l,:) = k_rep*f_rpx(l,:)
-    f_rpy(l,:) = k_rep*f_rpy(l,:)
-    end do
-    !$omp end do
-
 	return
         end subroutine interaction            
 

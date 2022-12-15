@@ -33,23 +33,18 @@ program ccd_run
 
 	call force()
 
-    !TODO: Turning the 2 omp singles below into omp sections gives either seg fault or divide by 0 error. Why? 
-    
     !$omp master
         ! Master makes sure random_number is called from a particular thread alone, i.e. the master thread.
         ! This is important as gfortran provides different prng sequences (different seeds) for different threads.
+        ! Calling rands from different prngs may upset the distribution/correlation we are after
         call random_seed(get = prng_seeds)
              CALL gasdev(noise,mean,var) ! Updates prng_seeds as side-effect        
     !$omp end master
 
     !$omp single
-    ! links() couldn't be parallelized as most of it needs to run sequentially. 
-    ! omp ordered would just increase overhead.
+    ! links() couldn't be parallelized easily as most of it needs to run sequentially. 
+    !TODO: TBD: Would omp ordered really increase overhead?
     call links()
-    !$omp end single nowait
-    
-    !$omp single
-        if(mod(j1,traj_dump_int).eq.0) call init_ring_nb()
     !$omp end single
 
 	call interaction(store_ring_nb = mod(j1,traj_dump_int).eq.0)

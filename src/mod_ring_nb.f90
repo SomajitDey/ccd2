@@ -20,8 +20,12 @@ contains
     end subroutine allocate_ring_nb
     
     subroutine init_ring_nb()
-        !TODO: TBD: How to parallelize init_ring_nb with OpenMP
-        ring_nb_yesno_packed = 0
+        integer :: i
+        !$omp do private(i)
+        do i=1,size(ring_nb_yesno_packed)
+            ring_nb_yesno_packed(i) = 0
+        end do
+        !$omp end do
     end subroutine init_ring_nb
     
     pure integer function index_packed_strictly_upper_triang_mat(l, q) result(array_1d_index)
