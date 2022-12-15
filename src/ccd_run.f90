@@ -11,6 +11,7 @@ program ccd_run
     use grid_linked_list
     use forces
     use integrator
+    use ring_nb, only: init_ring_nb
 
     implicit none
 
@@ -21,14 +22,16 @@ program ccd_run
     call prerun_setup(jf)
     
     call log_this('Setting up neighbor list grids')
-	call maps
-   
+	call gridmaps
+
     call log_this('Starting the main run')
 
     call timestamp()
 
 	!$omp parallel default(shared) private(j1)
     timeseries: do j1=1,jf
+
+	call force()
 
     !TODO: Turning the 2 omp singles below into omp sections gives either seg fault or divide by 0 error. Why? 
     
@@ -43,11 +46,13 @@ program ccd_run
     ! links() couldn't be parallelized as most of it needs to run sequentially. 
     ! omp ordered would just increase overhead.
     call links()
-    !$omp end single
+    !$omp end single nowait
     
-	call force()
+    !$omp single
+        if(mod(j1,traj_dump_int).eq.0) call init_ring_nb()
+    !$omp end single
 
-	call interaction()
+	call interaction(store_ring_nb = mod(j1,traj_dump_int).eq.0)
 
     !$omp sections
     !$omp section

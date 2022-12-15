@@ -23,27 +23,33 @@ module files
         character(len=*), intent(in) :: read_or_write, old_or_replace
         integer :: reclen, io_stat
 
-        inquire(iolength=reclen) timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
+        inquire(iolength=reclen) timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
         open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', &
             status=old_or_replace, asynchronous='yes', action=read_or_write, iostat=io_stat)
         if(io_stat /= 0) error stop 'Problem with opening '//traj_fname
     end subroutine open_traj
     
     subroutine traj_read(recnum, timepoint)
+        use ring_nb, only: unpack_ring_nb
         integer, intent(in) :: recnum
         double precision, intent(out) :: timepoint
         integer :: io_stat
+
         read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
-            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
+            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
         if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
+        call unpack_ring_nb()
     end subroutine traj_read
 
     subroutine traj_write(recnum, timepoint)
+        use ring_nb, only: pack_ring_nb, init_ring_nb
         integer, intent(in) :: recnum
         double precision, intent(in) :: timepoint
         integer :: io_stat
+
+        call pack_ring_nb()
         write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
-            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady
+            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
         if(io_stat /= 0) error stop 'Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write
 
@@ -117,7 +123,7 @@ module files
             write(fd,'(a,1x,es23.16)') '#Box:', boxlen
           do l=1,size(x,1)
             write(fd,'(a,1x,i0)') '#Cell:', l
-            do i=1,size(x,2) -2    
+            do i=1,size(x,2)
 				   x(l,i) = x(l,i) - boxlen*floor(x(l,i)/boxlen)
 				   y(l,i) = y(l,i) - boxlen*floor(y(l,i)/boxlen)
                 write(fd,*) x(l,i),y(l,i)

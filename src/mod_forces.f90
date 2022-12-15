@@ -11,26 +11,24 @@ contains
 
 	integer:: i,l
         double precision::l1,l2,dx1,dx2,dy1,dy2
+        integer :: i_minus_1, i_plus_1
    
           
 
          
      
-    !$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2)
+    !$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1)
   	do l=1,m
-        ! boundary condition
-	
-          x(l,0) = x(l,n)
-          y(l,0) = y(l,n)
-          x(l,n+1) = x(l,1)
-          y(l,n+1) = y(l,1)
 
         do i=1,n
 
-                   dx1 = x(l,i-1)-x(l,i)
-                   dy1 = y(l,i-1)-y(l,i)
-                   dx2 = x(l,i)-x(l,i+1)
-                   dy2 = y(l,i)-y(l,i+1)
+                   i_minus_1 = mod(i-2+n,n) + 1
+                   i_plus_1 = mod(i,n) + 1
+                   
+                   dx1 = x(l,i_minus_1)-x(l,i)
+                   dy1 = y(l,i_minus_1)-y(l,i)
+                   dx2 = x(l,i)-x(l,i_plus_1)
+                   dy2 = y(l,i)-y(l,i_plus_1)
 
                    dx1 = dx1 - box*nint(dx1/box)
                    dx2 = dx2 - box*nint(dx2/box)
@@ -57,16 +55,17 @@ contains
 	end subroutine force
 
  	!!*** Subroutine for intercellular forces of interaction ***!!
-    ! Below `ring_a` and `ring_b` denote any ring pair within the same cell or grid
-    ! `ring_a` and `ring_c` denote any ring pair within neighbouring cells/grids
-	subroutine interaction()
+	subroutine interaction(store_ring_nb)
 
 	use shared
     use grid_linked_list
+    use ring_nb, only: assert_are_nb_rings, init_ring_nb
           
+    logical, intent(in) :: store_ring_nb ! flag to store ring-ring neighborhood info
     integer:: i,j,l,q
-    double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor
-	integer:: icell,jcell,jcell0,nabor 
+    double precision:: r,frepx,frepy,dx,dy,fadhx,fadhy,factor
+	integer:: icell,jcell,nabor
+    integer :: bead_index, other_bead_index
              
     !$omp do private(l)
         do l=1,m
@@ -77,31 +76,39 @@ contains
         end do
     !$omp end do nowait
 
+    ! call init_ring_nb() !TODO: until init_ring_nb is parallelized
+
         !! Loop Over All Cells !!
 
-	!$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,rlist,factor, icell,jcell,jcell0,nabor)
+	!$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,factor, icell,jcell,nabor, bead_index) &
+    !$omp private(other_bead_index, store_ring_nb) &
+    !$omp reduction(+: f_rpx, f_rpy) &
+    !$omp reduction(+: f_adx, f_ady)
     grids: do icell=1,ncell
+        bead_index = bead_nl_head(icell)
 
-			l=headcell(icell)  !! Highest ring index in a cell(icell)
-			
-        ring_a: do	 ! For explanation of ring_a see above
-            if(l.eq.0) exit ring_a
+        beads_downlist: do
+            if(bead_index == 0) exit beads_downlist
 
-				i=headbead(icell,l) !! Highest bead index in the part of the ring(l) in a cell(icell)
+            intra_or_intergrid: do nabor=0,4
 
-			ring_a_beads: do	
-                if(i.eq.0) exit ring_a_beads
+                if(nabor == 0) then ! intragrid
+                    other_bead_index = bead_nl_body(bead_index)
+                else !intergrid
+                    jcell = gridmap(4*(icell-1) + nabor)
+                    other_bead_index = bead_nl_head(jcell)
+                end if
+                
+                other_beads_downlist: do
+                    if(other_bead_index == 0) exit other_beads_downlist
 
-					q=listcell(icell,l)  !! The next lower ring index after l-th ring in a cell(icell) 
+                    not_within_same_ring: if((bead_index-1)/n /= (other_bead_index-1)/n) then
 
-            ring_b: do
-					if((q.eq.0)) exit ring_b
-					       
-						j=headbead(icell,q) !! The highest bead index in the q-th ring in a cell(icell) 
-
-                ring_b_beads: do
-						if(j.eq.0) exit ring_b_beads
-											
+                        l = (bead_index-1)/n + 1 ! Ring index of bead
+                        i = mod((bead_index-1), n) + 1 ! Intraring serial number of bead
+                        q = (other_bead_index-1)/n + 1 ! Ring index of other bead
+                        j = mod((other_bead_index-1), n) + 1 ! Intraring serial number of other bead
+                    
 							dx = x(q,j)-x(l,i)
 							dy = y(q,j)-y(l,i)
 							dx = dx - box*nint(dx/box)
@@ -109,136 +116,46 @@ contains
 							r = dsqrt(dx*dx + dy*dy)
 							
 
-                      					if(r.lt.rc_rep) then
+                      					within_cutoff: if(r.lt.rc_rep) then
 
-				          		factor = (r-rc_rep)/r
+				          		if(store_ring_nb) call assert_are_nb_rings(l, q)
+                                
+                                factor = (r-rc_rep)/r
 				          		frepx = factor*dx
 					  			frepy = factor*dy
 
-                                !$omp flush (f_rpx, f_rpy)
-
-								!$omp atomic
 				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
-								!$omp atomic
 				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
 
-								!$omp atomic
 				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
-								!$omp atomic
 				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
-                        				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
+                        				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then within_cutoff
 
+                                if(store_ring_nb) call assert_are_nb_rings(l, q)
+                                
                                 factor = (rc_adh-r)/r
 								fadhx = factor*dx
 								fadhy = factor*dy
 
-                                !$omp flush (f_adx, f_ady)
-
-								!$omp atomic
                                 f_adx(l,i) = f_adx(l,i) + fadhx
-								!$omp atomic
 								f_adx(q,j) = f_adx(q,j) - fadhx
 
-								!$omp atomic
 						        f_ady(l,i) = f_ady(l,i) + fadhy 
-								!$omp atomic
 								f_ady(q,j) = f_ady(q,j) - fadhy
 
-       							end if
+       							end if within_cutoff
 
-							j=listbead(q,j) !! the next lower bead index in the q-th ring for the same cell(icell)
-						end do ring_b_beads
+                    end if not_within_same_ring
 
-						q=listcell(icell,q) !! the next lower ring index in the same cell(icell)
-					end do ring_b
+                    other_bead_index = bead_nl_body(other_bead_index)
+                end do other_beads_downlist
 
+            end do intra_or_intergrid
 
+            bead_index = bead_nl_body(bead_index)
+        end do beads_downlist
 
-	                      !! Loop Over Neighbouring Cells !!
-
-					jcell0 = 4*(icell-1)     
-					
-					do nabor=1,4
-						jcell = map(jcell0 + nabor)  !!
-
-	!! Loop Over All Rings & Beads Of The Neighbouring Cells!! 
-
-						q=headcell(jcell)
-																	
-                ring_c: do
-						if(q.eq.0) exit ring_c
-						    
-                                                     if(q.eq.l) then
-                                                        !!Considering the next ring in the neighbour cell
-                                                        q=listcell(jcell,q)
-                                                        cycle ring_c
-                                                     end if
-	
-							j=headbead(jcell,q)
-
-                    ring_c_beads: do
-							if(j.eq.0) exit ring_c_beads
-
-							dx = x(q,j)-x(l,i)
-							dy = y(q,j)-y(l,i)
-							dx = dx - box*nint(dx/box)
-							dy = dy - box*nint(dy/box)					        
-							r = dsqrt(dx*dx + dy*dy)
-							
-
-                      					if(r.lt.rc_rep) then
-
-				          		factor = (r-rc_rep)/r
-				          		frepx = factor*dx
-					  			frepy = factor*dy
-
-                                !$omp flush (f_rpx, f_rpy)
-								!$omp atomic
-				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
-								!$omp atomic
-				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
-
-								!$omp atomic
-				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
-								!$omp atomic
-				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
-
-                        				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then
-
-                                factor = (rc_adh-r)/r
-								fadhx = factor*dx
-								fadhy = factor*dy
-
-                                !$omp flush (f_adx, f_ady)
-								!$omp atomic
-								f_adx(l,i) = f_adx(l,i) + fadhx
-								!$omp atomic
-								f_adx(q,j) = f_adx(q,j) - fadhx
-
-								!$omp atomic
-						        f_ady(l,i) = f_ady(l,i) + fadhy 
-								!$omp atomic
-								f_ady(q,j) = f_ady(q,j) - fadhy
-								
-       							end if
-
-
-								j=listbead(q,j)!! Considering the next bead of the current ring in the neighbour cell
-							end do ring_c_beads
-
-							q=listcell(jcell,q) !!Considering the next ring in the neighbour cell
-
-
-						end do ring_c
-					end do
-
-
-					i=listbead(l,i)  !! Considering the next bead of the current ring in the current cell
-				end do ring_a_beads
-
-				l=listcell(icell,l)  !!Considering the next ring in the current cell  	
-			end do ring_a
 	end do grids		
     !$omp end do
 	

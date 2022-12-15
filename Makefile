@@ -15,15 +15,22 @@ DEPGEN := fortdepend
 DEPGEN_INSTALL_DOCS := [https://github.com/ZedThree/fort_depend.py]
 
 # Compiler Flags
-FF += -O3 -march=native
 ifeq ($(FC), gfortran)
+  ifdef DEBUG
+    FF += -march=native -O0 -fautomatic -static-libgfortran
+    FF += -Wall -Warray-temporaries -Wextra -pedantic 
+    FF += -g -fbacktrace -fcheck=all -ffpe-trap=invalid,zero,overflow -finit-real=snan
+  else
+    FF += -march=native -O3 -static-libgfortran -funroll-loops -fautomatic -w
+  endif
   ifdef OMP
     FF += -fopenmp
   endif
 else ifeq ($(FC), ifort)
-  # FF += -heap-arrays
   ifdef DEBUG
-  FF += -fp-stack-check -g -traceback -check bounds
+    FF += -march=native -static -O0 -auto -fp-stack-check -g -traceback -warn -check all
+  else
+    FF += -march=native -O3 -fast -auto -w
   endif
   ifdef OMP
     FF += -qopenmp

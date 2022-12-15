@@ -88,13 +88,14 @@ This software is built from a monolithic legacy code. Hence much had and still w
 - [x] checkpointing. Checkpoints serve dual purpose - run recovery and initialization
 - [x] command-line autocompletion
 - [x] very basic multithreading using OpenMP
-- [ ] continuous integration and git-hooks
+- [x] continuous integration and git-hooks
 - [ ] beads are stored in rows. Store them in columns instead for much performance improvement (as fortran is column major)
-- [ ] replace the overcomplicated neighborlist structure with a simple bead-based linked list for decreased overhead
-- [ ] replace the array-bound-based implementation of circular boundary conditions of beads within cells with `cshift` based construction for better maintainability 
+- [x] replace the overcomplicated neighborlist structure with a simple bead-based linked list for decreased overhead
+- [x] replace the array-bound-based implementation of circular boundary conditions of beads within cells for better maintainability 
+- [x] building the cell-cell neighborlist and dumping it in trajectory file in the most compressed way for later analysis such as hexatic order parameter
 - [ ] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
 - [ ] linting
 - [ ] performance oriented profiling and polishing
-- [ ] enhancing the driver code (`ccd`) as well as the bash-completion script
+- [x] enhancing the driver code (`ccd`) as well as the bash-completion script
 - [ ] include detailed [docs](docs/)
 - [ ] include analysis tools (legacy or new)

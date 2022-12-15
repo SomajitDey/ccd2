@@ -11,6 +11,7 @@ contains
       DOUBLE PRECISION:: fac,rsq,v1,v2
       DOUBLE PRECISION:: rands(2)
       INTEGER:: i, size_g
+      double precision, parameter :: small=epsilon(0.0d0)
       
       size_g=size(g)
      
@@ -20,7 +21,7 @@ contains
         v1=2.0d0*rands(1)-1.0d0
         v2=2.0d0*rands(2)-1.0d0
         rsq=v1**2+v2**2
-        if((rsq<1.0d0).AND.(rsq/=0.0d0))EXIT
+        if((rsq<1.0d0).AND.(rsq>small))EXIT
         ENDDO
         fac=variance*DSQRT(-2.0d0*dlog(rsq)/(rsq))
         g(i)=v1*fac+mean

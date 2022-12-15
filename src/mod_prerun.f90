@@ -24,7 +24,7 @@ module prerun
 
         call log_this('Reading run parameters from '//params_fname)
         call assign_params(params_fname)
-        if((size(x,1) /= m).or.(size(x,2) /= n+2)) error stop &
+        if((size(x,1) /= m).or.(size(x,2) /= n)) error stop &
             'System size as read in from checkpoint: '//cpt_fname// &
                 ' does not match that given in parameter file: '//params_fname
 

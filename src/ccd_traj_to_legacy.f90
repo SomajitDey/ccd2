@@ -15,7 +15,7 @@ program ccd_traj_to_legacy
     open(newunit=legacy_fd, file=legacy_fname, status='replace')
 
     ncell = size(x,1)
-    nbeads_per_cell = size(x,2)-2
+    nbeads_per_cell = size(x,2)
 
     write(legacy_fd,*) 'Ignore this line'
 
