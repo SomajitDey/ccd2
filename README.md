@@ -31,11 +31,9 @@ If you don't want to install it right away but test: `. setup_test_env.sh`
 `ccd`
 
 # Sample Workflow
-Create and change into a new directory.
+- Create and change into a new directory.
 
-Copy and edit the `params.in` file. Put only those key-value pairs for the run parameters that you don't want the default for. (Defaults are currently hardcoded in src/mod_parameters.f90. To be fixed in future.)
-
-source the `ccd_completion.sh` script for `<TAB>` completion of the following command lines. If met with segfault or stack smashing error you may also have to run the command: `ulimit -s unlimited` (see [Note](#Note) below)
+- Copy and edit the [params.in](/params.in) file. *Put only those key-value pairs for the run parameters that you don't want the default for*. (Defaults are currently hardcoded in [src/mod_parameters.f90](/src/mod_parameters.f90))
 
 ```bash
 # Random initialization
@@ -60,10 +58,14 @@ ccd archive
 ccd archive metadata.txt
 ```
 
+- If you want to use another path instead of `params.in` for the run-parameter file, put the same in the enviroment variable `CCD_PARAMS_PATH`
+
+- If all (or most) of your runs use certain common *non-default* parameter values, provide those in the key-value file (RC file) at `${HOME}/.ccdrc`. `ccd` reads these parameters before reading parameters from `params.in` or `${CCD_PARAMS_PATH}`. Values read in from the latter file take precedence in case of conflicts. Non-default locations of the RC file may be passed through the `CCD_RC_PATH` enviroment variable.
+ 
 # Note
-If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited`.
+If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited; export OMP_STACKSIZE=500m`.
 If the problem persists, rebuild with `make DEBUG=set` and report @ [issue](https://github.com/PhyBi/Collective-Cell-Dynamics/issues).
-Also try the `-heap-arrays` flag (FF for ifort) in the Makefile.
+Also try the `-heap-arrays` compiler flag (`FF`) for ifort in the Makefile.
 
 # License
 No use of this software shall be made without permission from the PI, [Dr. Dipjyoti Das](mailto:dipjyoti.das@iiserkol.ac.in).
@@ -93,7 +95,7 @@ This software is built from a monolithic legacy code. Hence much had and still w
 - [x] replace the overcomplicated neighborlist structure with a simple bead-based linked list for decreased overhead
 - [x] replace the array-bound-based implementation of circular boundary conditions of beads within cells for better maintainability 
 - [x] building the cell-cell neighborlist and dumping it in trajectory file in the most compressed way for later analysis such as hexatic order parameter
-- [ ] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
+- [x] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
 - [ ] linting
 - [ ] performance oriented profiling and polishing
 - [x] enhancing the driver code (`ccd`) as well as the bash-completion script

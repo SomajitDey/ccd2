@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Brief: Driver script for <package>
+# Usage: <package> [<subcommand> [[<options>] <args>]]
+# Specs:
+# When user wants to run <package> she usually provides subcommands [with options and arguments] to this script
+# This script then invokes the executable <package>_<subcommand> (found in PATH) with the user-provided opts and args
+# This script also loads <package>_config.sh on startup and <package>_exit.sh before exit
+# Providing no subcommand executes the executable: <package>_
+
+whereami(){
+  # Returns the absolute path of the directory this script is in
+  case "${BASH_SOURCE}" in
+    /*)
+      echo -n "${BASH_SOURCE%/*}" ;;
+    */*)
+      echo -n "${PWD}/${BASH_SOURCE%/*}" ;;
+    *)
+      echo -n "${PWD}";;
+  esac
+}
+this_script_is_at="$(whereami)"
+
+source_if_exists_in_PATH(){
+  # Sources the given script if it exists in PATH
+  local script="${1}"
+  command -v "${script}" &>/dev/null && source "${script}"
+}
+
+invocation="${0}"
+package="${invocation##*/}"
+
+export PATH="${this_script_is_at}/${package}_:${PATH}"
+
+source_if_exists_in_PATH ${package}_config.sh
+
+subcmd="${1}"
+shift
+
+if [[ -z "${subcmd}" ]]; then
+  ${package}_
+else
+  ${package}_${subcmd} "${@}"
+fi
+
+source_if_exists_in_PATH ${package}_exit.sh

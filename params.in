@@ -1,6 +1,7 @@
 ! This is a comment line
 ! This file contains key value pairs of the form:
-! key = value
+! <key> = <value>
+! Some examples follow:
 
 Vo = 0.0
 nsamples = 3

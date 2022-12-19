@@ -1,4 +1,6 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
+# Brief:
+# Usage: 
 
 archive_path="${HOME}/.ccd"
 archive_path_traj="${archive_path}/trajectories"

@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 # Brief: Plots the given config using gnuplot.
 # Usage: ccd_visual [<xy file>]
 # Default xy file: config.xy

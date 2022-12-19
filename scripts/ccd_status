@@ -1,3 +1,6 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
+# Brief:
+# Usage:
+
 status_file=status.lock
 tail -n+2 -f "${status_file}" | pv -p -e -l -s $(head -n1 "${status_file}") > /dev/null

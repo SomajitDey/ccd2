@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# This executable is called by ccd driver when invoked with no subcommand
+
+cat <<- EOF
+
+  Collective Cell Dynamics (2D)
+  =============================
+
+ Usage: ccd [<subcommand> [options]]
+ ** This package includes <TAB>-based command-line completion
+ ** For example, to see available commands simply do:
+    ccd<SPACE><TAB><TAB>
+
+ Repository: https://github.com/PhyBi/Collective-Cell-Dynamics
+
+ ** Checkout the repository for details such as About, Docs, License, Contributors etc.
+
+EOF

@@ -3,7 +3,7 @@ module ring_nb
     implicit none
 
     integer, dimension(:), allocatable, protected :: ring_nb_yesno_packed ! holds ring ring neighborhood info
-    ! the above is a packing of the strictly upper triangular matrix - (i,j) for i<j, j=1,m
+    ! the above is a 1D packing of the strictly upper triangular matrix - whether_neighbors(i,j) for i<j, j=1,m
     private :: index_packed_strictly_upper_triang_mat
     integer, dimension(:), allocatable :: ring_nb_io
     ! compressed ring_nb info : stores only non-zero elements of ring_nb_yesno_packed

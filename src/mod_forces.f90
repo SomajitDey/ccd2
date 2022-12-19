@@ -116,10 +116,11 @@ contains
 							r = dsqrt(dx*dx + dy*dy)
 							
 
-                      					within_cutoff: if(r.lt.rc_rep) then
+                      					within_cutoff: if(r.lt.rc_adh) then
 
 				          		if(store_ring_nb) call assert_are_nb_rings(l, q)
-                                
+
+                                if(r.lt.rc_rep) then ! Repulsion
                                 factor = k_rep*(r-rc_rep)/r
 				          		frepx = factor*dx
 					  			frepy = factor*dy
@@ -130,9 +131,7 @@ contains
 				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
 				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
 
-                        				else if((r.le.rc_adh).and.(r.ge.rc_rep)) then within_cutoff
-
-                                if(store_ring_nb) call assert_are_nb_rings(l, q)
+                        				else ! Adhesion
                                 
                                 factor = k_adh*(rc_adh-r)/r
 								fadhx = factor*dx
@@ -144,7 +143,8 @@ contains
 						        f_ady(l,i) = f_ady(l,i) + fadhy 
 								f_ady(q,j) = f_ady(q,j) - fadhy
 
-       							end if within_cutoff
+       							end if
+                                end if within_cutoff
 
                     end if not_within_same_ring
 

@@ -73,11 +73,11 @@ SCRIPT_DIR := scripts
 SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*)
 
 # Path to the DRIVER script that represents the entire package
-DRIVER_TEMPLATE := $(SCRIPT_DIR)/package
+DRIVER_TEMPLATE := $(SCRIPT_DIR)/driver.template
 DRIVER := $(SCRIPT_DIR)/$(PACKAGE)
 
 # Bash Completion script
-SUBCMDS := $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS)))
+SUBCMDS := $(filter-out %_, %.%, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS))))
 BASHCOMP := $(PACKAGE)_completion.sh
 
 # Dependency file to be generated using `fortdepend`

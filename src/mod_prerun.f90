@@ -28,8 +28,14 @@ module prerun
             'System size as read in from checkpoint: '//cpt_fname// &
                 ' does not match that given in parameter file: '//params_fname
 
-        if((rc_adh .gt. box/2) .or. (rc_rep .gt. box/2)) error stop &
+        if(l0 .gt. rc_adh) call log_this('Warning: Spring length is bigger than adhesion cutoff.')
+        if(l0 .gt. rc_rep) call log_this('Warning: Spring length is bigger than repulsion cutoff.')
+        !TODO: Should the above be error stops instead of warnings ?
+        if(rc_rep .gt. rc_adh) error stop 'Repulsion cutoff is bigger than adhesion cutoff.'
+        if(rc_adh .gt. box/2) error stop &
             'Minimum image convention is at stake. Make box bigger than 2 x interaction-cutoff.'
+        !TODO: The above should also check box/2 > max possible spring length
+        ! estimate involves pressure pl0 and spring constant K - force balance FBD of regular n-gon
 
         append_flag_present = cmd_line_flag('-a') .or. cmd_line_flag('--append')
         finish_prev_run = (pending_steps /= 0) .and. (params_hash == sha1(params_fname))
