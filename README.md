@@ -8,16 +8,20 @@ Work in progress. Check [TODO](#TODO) list below.
 
 # Dependencies
 - [fortdepend](https://github.com/ZedThree/fort_depend.py) or its [fork](https://github.com/PhyBi/fortdepend) for generating dependencies during build
+- [bash](https://command-not-found.com/bash) because we suck at writing fully POSIX-compliant shell scripts
 - [pv](https://command-not-found.com/pv) for showing real-time progress bar
+- [gnuplot](https://command-not-found.com/gnuplot) for visualization
 
 # Build
-Download: `git clone --depth=1 https://github.com/PhyBi/Collective-Cell-Dynamics ccd`
+- Install, if non-existent, the above [dependencies](#dependencies) first
 
-`cd ccd`
+- Download this project: `git clone --depth=1 https://github.com/PhyBi/Collective-Cell-Dynamics ccd`
 
-Use `make` as usual. Other uses: `make rebuild`, `make clean`.
-Default compiler: `gfortran`. To use `ifort` instead, `make FC=ifort`
-To include OpenMP, set the `OMP` variable when running `make`, e.g. `make OMP=set rebuild`.
+- Change to the downloaded project directory: `cd ccd`
+
+- Compile: Use `make` as usual. Other uses: `make rebuild`, `make clean`.
+
+Notes: Default compiler is `gfortran`. To use `ifort` instead, use `make FC=ifort`. To include OpenMP, set the `OMP` variable when running `make`, e.g. `make OMP=set rebuild`. Set the `DEBUG` variable in order to build in debug mode.
 
 # Install
 `make install`
