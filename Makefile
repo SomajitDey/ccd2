@@ -77,7 +77,7 @@ DRIVER_TEMPLATE := $(SCRIPT_DIR)/driver.template
 DRIVER := $(SCRIPT_DIR)/$(PACKAGE)
 
 # Bash Completion script
-SUBCMDS := $(filter-out %_, %.%, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS))))
+SUBCMDS := $(filter-out %_ %.sh, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS))))
 BASHCOMP := $(PACKAGE)_completion.sh
 
 # Dependency file to be generated using `fortdepend`
@@ -138,7 +138,7 @@ include $(DEPFILE)
 $(DEPGEN):
 	@which $@ > /dev/null || { echo -e $(RED)"make: Please install $@ first. $(DEPGEN_INSTALL_DOCS)"$(NOCOLOR) && false;}
 
-$(BASHCOMP):
+$(BASHCOMP): $(EXECS) $(SCRIPTS)
 	@echo -e $(BLUE)"make: Creating Bash completion script: $(BASHCOMP)"$(NOCOLOR)
 	@echo -e "# This is the bash-completion script for command: $(PACKAGE)\n\
 	complete -W '$(SUBCMDS)' $(PACKAGE)" > $(BASHCOMP)

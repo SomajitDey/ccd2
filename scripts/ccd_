@@ -6,10 +6,9 @@ cat <<- EOF
   Collective Cell Dynamics (2D)
   =============================
 
- Usage: ccd [<subcommand> [options]]
- ** This package includes <TAB>-based command-line completion
- ** For example, to see available commands simply do:
-    ccd<SPACE><TAB><TAB>
+ Usage: ccd [[-p <parameter>=<value>] <subcommand> [options]]
+ ** To see available subcommands: ccd<SPACE><TAB><TAB>
+ ** Parameter values may be passed using the -p option
 
  Repository: https://github.com/PhyBi/Collective-Cell-Dynamics
 
