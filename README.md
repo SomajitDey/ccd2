@@ -37,7 +37,7 @@ If you don't want to install it right away but test: `. setup_test_env.sh`
 # Sample Workflow
 - Create and change into a new directory.
 
-- Copy and edit the [params.in](/params.in) file. *Put only those key-value pairs for the run parameters that you don't want the default for*. (Defaults are currently hardcoded in [src/mod_parameters.f90](/src/mod_parameters.f90))
+- Copy and edit the [params.in](/params.in) file. *Put only those key-value pairs for the run parameters that you don't want the default for*. `ccd show_params` lists all parameters ccd takes. For meaning and default values of the parameters, please look up [src/mod_parameters.f90](/src/mod_parameters.f90).
 
 ```bash
 # Random initialization
@@ -68,9 +68,7 @@ ccd archive metadata.txt
 
 - It is also possible to pass run-time parameters using the command-line. These values take precedence over those read in from from `params.in` or `${CCD_PARAMS_PATH}` in case of conflicts. For example,
 ```bash
-ccd -p <parameterA>=<valueA> -p <parameterB>=<valueB> init
-ccd -p <parameterA>=<valueA> -p <parameterB>=<valueB> run --append
-ccd -p <parameterA>=<valueA> -p <parameterB>=<valueB> show_params
+ccd -p '<parameterA>=<valueA>' -p '<parameterB>=<valueB>' show_params
 ```
 
 # Note

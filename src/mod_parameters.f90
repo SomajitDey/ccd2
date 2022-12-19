@@ -18,7 +18,7 @@ module parameters
     integer,protected:: n = 50    ! No. of beads
     integer,protected:: m = 256   ! No. of cell
 
-    namelist /params/ dt, nsamples, Vo, k_adh, tau_align, var,m,n
+    namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, var, Vo, c, dt, tau_align, nsamples, n, m
 
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
