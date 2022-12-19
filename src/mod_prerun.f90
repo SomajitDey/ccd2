@@ -28,6 +28,7 @@ module prerun
             'System size as read in from checkpoint: '//cpt_fname// &
                 ' does not match that given in parameter file: '//params_fname
 
+        !TODO: Include the following tests in assign_params by calling check_params() in mod_parameters
         if(l0 .gt. rc_adh) call log_this('Warning: Spring length is bigger than adhesion cutoff.')
         if(l0 .gt. rc_rep) call log_this('Warning: Spring length is bigger than repulsion cutoff.')
         !TODO: Should the above be error stops instead of warnings ?

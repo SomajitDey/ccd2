@@ -36,6 +36,9 @@ contains
 ! Note: CPU usage = cpu x 100 % / wclock
 ! Note: #Threads = nint(cpu/wclock)
 
+!TODO: Rename timestamp -> stopwatch. Add split capture mechanism: split_cpu, split_wclock.
+! cpu and wclock would give time spent since first/resetting invocation
+! Add logical reset flag as well
 subroutine timestamp(cpu, wclock)
     real, intent(out), optional :: cpu, wclock
     integer, save :: sys_clock_count_prev

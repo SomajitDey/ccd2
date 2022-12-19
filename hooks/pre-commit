@@ -25,6 +25,8 @@ echo -e "\nSourcing the test environment setup script:\n"
 . setup_test_env.sh
 
 # Linting
+echo -e "\nWidth check:\n"
+! width_check src/*.f90 | grep -q '.'
 echo -e "\n\e[1;31mDont forget to use fortran-linter later on for inplace autofixing code style\e[;0m"
 
 # Further tests
