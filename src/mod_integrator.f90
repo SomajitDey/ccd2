@@ -18,23 +18,23 @@ contains
        do l=1,m
         tmp = (l-1)*n
         do i=1,n
-           vx = (fx(l,i) + f_adx(l,i) + f_rpx(l,i))*dt/c + Vo*mx(l,i)*dt
-           vy = (fy(l,i) + f_ady(l,i) + f_rpy(l,i))*dt/c + Vo*my(l,i)*dt
-           x(l,i) = x(l,i) + vx
-           y(l,i) = y(l,i) + vy
+           vx = (fx(i,l) + f_adx(i,l) + f_rpx(i,l))*dt/c + Vo*mx(i,l)*dt
+           vy = (fy(i,l) + f_ady(i,l) + f_rpy(i,l))*dt/c + Vo*my(i,l)*dt
+           x(i,l) = x(i,l) + vx
+           y(i,l) = y(i,l) + vy
             
       
-            wz = (mx(l,i)*vy - my(l,i)*vx)/(tau_align*dt) + noise(tmp+i)
-            theta_x = -my(l,i)*wz*dt
-            theta_y = mx(l,i)*wz*dt
+            wz = (mx(i,l)*vy - my(i,l)*vx)/(tau_align*dt) + noise(tmp+i)
+            theta_x = -my(i,l)*wz*dt
+            theta_y = mx(i,l)*wz*dt
             theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
             
             ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
             factor1 = 1.0d0 - theta_sq_by_4
             factor2 = 1.0d0 + theta_sq_by_4
             
-            mx(l,i) = (factor1*mx(l,i) + theta_x)/factor2
-            my(l,i) = (factor1*my(l,i) + theta_y)/factor2
+            mx(i,l) = (factor1*mx(i,l) + theta_x)/factor2
+            my(i,l) = (factor1*my(i,l) + theta_y)/factor2
         end do
       end do
       !$omp end do nowait

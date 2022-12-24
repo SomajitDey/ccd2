@@ -10,7 +10,7 @@ double precision:: radius   ! Initial/seed cell radius
 double precision:: acell,bcell,dr,mindist,dx,dy, theta1
 integer:: l,kcell,i,fail_count
 real:: rands(2)
-double precision, dimension(size(x,dim=1)) :: xcell, ycell ! centre coordinates of any circular cell/ring
+double precision, dimension(size(x,dim=2)) :: xcell, ycell ! centre coordinates of any circular cell/ring
 
 radius = 0.5d0*l0/dsin(pi/n) ! circumcirle of a regular n-gon with side l0
 dr = rc_rep ! initial separation between cell peripheries
@@ -58,8 +58,8 @@ end do seed_cell_centres
 do l=1,m
     do i=1,n        
         theta1 = (i-1)*2.0d0*pi/n
-        x(l,i) = radius*dcos(theta1) + xcell(l)
-        y(l,i) = radius*dsin(theta1) + ycell(l)
+        x(i,l) = radius*dcos(theta1) + xcell(l)
+        y(i,l) = radius*dsin(theta1) + ycell(l)
      end do
 end do
 
@@ -79,8 +79,8 @@ end do
                 mx_tmp = 2.0d0*rands(1) - 1.0d0
                 my_tmp = 2.0d0*rands(2) - 1.0d0
                 m_tmp = dsqrt(mx_tmp*mx_tmp + my_tmp*my_tmp)
-                mx(l,i)=mx_tmp/m_tmp
-                my(l,i)=my_tmp/m_tmp     
+                mx(i,l)=mx_tmp/m_tmp
+                my(i,l)=my_tmp/m_tmp
             end do
         end do
 

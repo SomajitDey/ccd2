@@ -10,20 +10,33 @@ module files
     character(len=*), parameter :: status_fname='status.lock'
     character(len=*), parameter :: cpt_fname='state.cpt'
     ! File Descriptors
-    integer :: traj_fd, final_fd, status_fd, cpt_fd
-    character(len=40) :: init_cpt_hash, final_cpt_hash, traj_hash
+    integer, protected :: traj_fd, status_fd, cpt_fd
     
+    ! File hashes(checksums)
+    character(len=40), protected :: init_cpt_hash, final_cpt_hash, traj_hash    
     namelist /checksums/ init_cpt_hash, final_cpt_hash, traj_hash
+    
+    integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
+    integer, parameter:: status_dump_int=100 ! Status file dump interval
+    integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval
 
     logical :: do_status_dump = .true. ! This flag may be set and unset using signals
     
+    real, dimension(:,:,:), allocatable, private :: compressed_fp_for_io
+    ! Double to single precision compression. Multiple arrays compressed into one big array
+    ! Declaring as permanent to avoid overhead of repetitive allocation and deallocation as temporary array
+
     contains
     
     subroutine open_traj(read_or_write, old_or_replace)
         character(len=*), intent(in) :: read_or_write, old_or_replace
-        integer :: reclen, io_stat
+        integer :: reclen, io_stat, alloc_stat
 
-        inquire(iolength=reclen) timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
+        allocate(compressed_fp_for_io(10,size(x,1),size(x,2)), stat=alloc_stat)
+        if(alloc_stat /= 0) error stop 'Problem in allocating compressed_fp_for_io'
+        !TODO: All error stops should contain the subroutine/module name and variable name
+        
+        inquire(iolength=reclen) timepoint, compressed_fp_for_io, ring_nb_io
         open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', &
             status=old_or_replace, asynchronous='yes', action=read_or_write, iostat=io_stat)
         if(io_stat /= 0) error stop 'Problem with opening '//traj_fname
@@ -32,34 +45,62 @@ module files
     subroutine traj_read(recnum, timepoint)
         use ring_nb, only: unpack_ring_nb
         integer, intent(in) :: recnum
-        double precision, intent(out) :: timepoint
+        real, intent(out) :: timepoint
         integer :: io_stat
+        double precision, dimension(size(mx,1),size(mx,2)) :: m_norm
 
         read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
-            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
+            timepoint, compressed_fp_for_io, ring_nb_io
         if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
         call unpack_ring_nb()
+
+        x = dble( compressed_fp_for_io(1,:,:) )
+        y = dble( compressed_fp_for_io(2,:,:) )
+        mx = dble( compressed_fp_for_io(3,:,:) )
+        my = dble( compressed_fp_for_io(4,:,:) )
+        fx = dble( compressed_fp_for_io(5,:,:) )
+        fy = dble( compressed_fp_for_io(6,:,:) )
+        f_rpx = dble( compressed_fp_for_io(7,:,:) )
+        f_rpy = dble( compressed_fp_for_io(8,:,:) )
+        f_adx = dble( compressed_fp_for_io(9,:,:) )
+        f_ady = dble( compressed_fp_for_io(10,:,:) )
+        
+        m_norm = dsqrt(mx*mx + my*my)
+        mx = mx / m_norm
+        my = my / m_norm
     end subroutine traj_read
 
     subroutine traj_write(recnum, timepoint)
         use ring_nb, only: pack_ring_nb, init_ring_nb
         integer, intent(in) :: recnum
-        double precision, intent(in) :: timepoint
+        real, intent(in) :: timepoint
         integer :: io_stat
 
+        compressed_fp_for_io(1,:,:) = real(x)
+        compressed_fp_for_io(2,:,:) = real(y)
+        compressed_fp_for_io(3,:,:) = real(mx)
+        compressed_fp_for_io(4,:,:) = real(my)
+        compressed_fp_for_io(5,:,:) = real(fx)
+        compressed_fp_for_io(6,:,:) = real(fy)
+        compressed_fp_for_io(7,:,:) = real(f_rpx)
+        compressed_fp_for_io(8,:,:) = real(f_rpy)
+        compressed_fp_for_io(9,:,:) = real(f_adx)
+        compressed_fp_for_io(10,:,:) = real(f_ady)
+        
         call pack_ring_nb()
         write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
-            timepoint, x, y, mx, my, fx, fy, f_rpx, f_rpy, f_adx, f_ady, ring_nb_io
+            timepoint, compressed_fp_for_io, ring_nb_io
         if(io_stat /= 0) error stop 'Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write
 
     subroutine close_traj()
         close(traj_fd, status='keep')
         traj_hash = sha1(traj_fname)
+        deallocate(compressed_fp_for_io)
     end subroutine close_traj
 
     subroutine cpt_read(timepoint, recnum, pending_steps, params_hash)
-                double precision, intent(out) :: timepoint
+                real, intent(out) :: timepoint
                 integer, intent(out) :: recnum, pending_steps
                 character(len=40), intent(out) :: params_hash
                 integer :: ncells, nbeads_per_cell, io_stat
@@ -87,7 +128,7 @@ module files
     
     subroutine cpt_write(timepoint, recnum, pending_steps)
                 use parameters, only: m,n
-                double precision, intent(in) :: timepoint
+                real, intent(in) :: timepoint
                 integer, intent(in) :: recnum, pending_steps
 
                 ! Complete trajectory-file dumps so far and flush output buffer
@@ -113,20 +154,22 @@ module files
     end subroutine cpt_write
 
     ! Dumps xy file for any frame/timestep to be consumed by third party apps like gnuplot
-    subroutine xy_dump(fname, boxlen)
+    subroutine xy_dump(fname, boxlen, title)
         double precision, intent(in) :: boxlen
         character(len=*), intent(in) :: fname
+        character(len=*), intent(in), optional :: title
         integer :: fd, l, i
 
         open(newunit=fd, file=fname, access='sequential', form='formatted',status='replace', &
             action='write')
+            if(present(title)) write(fd, '(a,1x,a)') '#Title:', title
             write(fd,'(a,1x,es23.16)') '#Box:', boxlen
-          do l=1,size(x,1)
+          do l=1,size(x,2)
             write(fd,'(a,1x,i0)') '#Cell:', l
-            do i=1,size(x,2)
-				   x(l,i) = x(l,i) - boxlen*floor(x(l,i)/boxlen)
-				   y(l,i) = y(l,i) - boxlen*floor(y(l,i)/boxlen)
-                write(fd,*) x(l,i),y(l,i)
+            do i=1,size(x,1)
+				   x(i,l) = x(i,l) - boxlen*floor(x(i,l)/boxlen)
+				   y(i,l) = y(i,l) - boxlen*floor(y(i,l)/boxlen)
+                write(fd,*) x(i,l),y(i,l)
             end do
             write(fd,'(a,1x,i0,/)') '#End_Cell:', l
           end do

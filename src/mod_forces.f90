@@ -25,10 +25,10 @@ contains
                    i_minus_1 = mod(i-2+n,n) + 1
                    i_plus_1 = mod(i,n) + 1
                    
-                   dx1 = x(l,i_minus_1)-x(l,i)
-                   dy1 = y(l,i_minus_1)-y(l,i)
-                   dx2 = x(l,i)-x(l,i_plus_1)
-                   dy2 = y(l,i)-y(l,i_plus_1)
+                   dx1 = x(i_minus_1,l)-x(i,l)
+                   dy1 = y(i_minus_1,l)-y(i,l)
+                   dx2 = x(i,l)-x(i_plus_1,l)
+                   dy2 = y(i,l)-y(i_plus_1,l)
 
                    dx1 = dx1 - box*nint(dx1/box)
                    dx2 = dx2 - box*nint(dx2/box)
@@ -39,11 +39,11 @@ contains
 
                    l2 = dsqrt(dx2*dx2 + dy2*dy2)
 
-                   fx(l,i)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
+                   fx(i,l)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
                                 - 0.5d0*p*l0*(dy1/l1 + dy2/l2) 
                      
 
-                   fy(l,i)=k*((l1-l0)*dy1/l1 - (l2-l0)*dy2/l2) &
+                   fy(i,l)=k*((l1-l0)*dy1/l1 - (l2-l0)*dy2/l2) &
                                 + 0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
 	  end do
@@ -69,10 +69,10 @@ contains
              
     !$omp do private(l)
         do l=1,m
-			f_rpx(l,:)=0.0d0
-			f_rpy(l,:)=0.0d0
-			f_adx(l,:)=0.0d0
-			f_ady(l,:)=0.0d0
+			f_rpx(:,l)=0.0d0
+			f_rpy(:,l)=0.0d0
+			f_adx(:,l)=0.0d0
+			f_ady(:,l)=0.0d0
         end do
     !$omp end do nowait
 
@@ -109,8 +109,8 @@ contains
                         q = (other_bead_index-1)/n + 1 ! Ring index of other bead
                         j = mod((other_bead_index-1), n) + 1 ! Intraring serial number of other bead
                     
-							dx = x(q,j)-x(l,i)
-							dy = y(q,j)-y(l,i)
+							dx = x(j,q)-x(i,l)
+							dy = y(j,q)-y(i,l)
 							dx = dx - box*nint(dx/box)
 							dy = dy - box*nint(dy/box)					        
 							r = dsqrt(dx*dx + dy*dy)
@@ -125,11 +125,11 @@ contains
 				          		frepx = factor*dx
 					  			frepy = factor*dy
 
-				          			f_rpx(l,i) = f_rpx(l,i) + frepx 
-				          			f_rpx(q,j) = f_rpx(q,j) - frepx 
+				          			f_rpx(i,l) = f_rpx(i,l) + frepx 
+				          			f_rpx(j,q) = f_rpx(j,q) - frepx 
 
-				          			f_rpy(l,i) = f_rpy(l,i) + frepy 
-				          			f_rpy(q,j) = f_rpy(q,j) - frepy 
+				          			f_rpy(i,l) = f_rpy(i,l) + frepy 
+				          			f_rpy(j,q) = f_rpy(j,q) - frepy 
 
                         				else ! Adhesion
                                 
@@ -137,11 +137,11 @@ contains
 								fadhx = factor*dx
 								fadhy = factor*dy
 
-                                f_adx(l,i) = f_adx(l,i) + fadhx
-								f_adx(q,j) = f_adx(q,j) - fadhx
+                                f_adx(i,l) = f_adx(i,l) + fadhx
+								f_adx(j,q) = f_adx(j,q) - fadhx
 
-						        f_ady(l,i) = f_ady(l,i) + fadhy 
-								f_ady(q,j) = f_ady(q,j) - fadhy
+						        f_ady(i,l) = f_ady(i,l) + fadhy 
+								f_ady(j,q) = f_ady(j,q) - fadhy
 
        							end if
                                 end if within_cutoff

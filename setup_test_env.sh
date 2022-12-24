@@ -13,7 +13,7 @@ whereami(){
 }
 this_script_is_at="$(whereami)"
 
-export PATH="${this_script_is_at}/build:${this_script_is_at}/scripts:${this_script_is_at}/hooks:${PATH}"
+export PATH="${this_script_is_at}/build:${this_script_is_at}/scripts:${this_script_is_at}/hooks:${this_script_is_at}/tests:${PATH}"
 
 . "${this_script_is_at}/ccd_completion.sh"
 ulimit -s unlimited

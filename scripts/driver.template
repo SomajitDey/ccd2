@@ -33,9 +33,9 @@ subcmd="${1}"
 shift
 
 if [[ -z "${subcmd}" ]]; then
-  ${package}_
+  ${package}_ || exit $?
 else
-  ${package}_${subcmd} "${@}"
+  ${package}_${subcmd} "${@}" || exit $?
 fi
 
 # Loading exit script, if any

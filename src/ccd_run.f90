@@ -80,7 +80,7 @@ program ccd_run
     call timestamp(cpusec,wcsec)
 
     call log_this('Run complete. Writing final checkpoint')
-    call cpt_write(timepoint-dt, recnum-1, 0)
+    call cpt_write(real(timepoint-dt), recnum-1, 0)
 
     call close_traj()
 

@@ -24,7 +24,7 @@ module prerun
 
         call log_this('Reading run parameters from '//params_fname)
         call assign_params(params_fname)
-        if((size(x,1) /= m).or.(size(x,2) /= n)) error stop &
+        if((size(x,2) /= m).or.(size(x,1) /= n)) error stop &
             'System size as read in from checkpoint: '//cpt_fname// &
                 ' does not match that given in parameter file: '//params_fname
 
@@ -48,7 +48,7 @@ module prerun
         else
             traj_status='replace'
             recnum = 1
-            timepoint = 0.0d0
+            timepoint = 0.0
         end if
         if(.not. finish_prev_run) pending_steps = 0
         jf = nsamples*traj_dump_int + pending_steps

@@ -4,6 +4,7 @@
 *.xy
 *.cpt
 *.xy.legacy
+*metadata*
 build/
 .dependencies
 ccd_completion.sh

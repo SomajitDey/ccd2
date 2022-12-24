@@ -20,10 +20,6 @@ module parameters
 
     namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, var, Vo, c, dt, tau_align, nsamples, n, m
 
-    integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
-    integer, parameter:: status_dump_int=100 ! Status file dump interval
-    integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval
-
     contains
     
     subroutine assign_params(fname)

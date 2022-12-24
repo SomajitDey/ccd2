@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # Brief: Plots the given config using gnuplot.
 # Usage: ccd_visual [<xy file>]
+# Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
+#### such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
 
-xyfile="${1:-config.xy}"
-box="$(grep '#Box:' "${xyfile}" | awk '{print $2}')"
+gplot="${GNUPLOT_PATH:-$(which gnuplot)}"
 
-gnuplot --persist << EOF
+xyfile="${1:-config.xy}"
+title="$(grep '#Title:' "${xyfile}" | cut -d ' ' -f 2-)"
+box="$(grep '#Box:' "${xyfile}" | awk '{print $2}')"
+tmp_plt_script="$(mktemp .tmp.XXXX.plt)"
+
+cat > "${tmp_plt_script}" << EOF
     set xr[0:"${box}"]
     set yr[0:"${box}"]
     unset tics
+    set title "${title}"
     pl "${xyfile}" u 1:2 lt -1 pt 7 ps 0.5 t ""
 EOF
+
+eval "${gplot}" --persist "${tmp_plt_script}"
+rm -f "${tmp_plt_script}"

@@ -2,7 +2,6 @@
 
 program ccd_traj_to_legacy
     use files
-    use parameters, only: traj_dump_int
     implicit none
     integer :: pending_steps, rec_index, ncell, nbeads_per_cell, l, i, legacy_fd
     character(len=40) :: params_hash
@@ -14,8 +13,8 @@ program ccd_traj_to_legacy
 
     open(newunit=legacy_fd, file=legacy_fname, status='replace')
 
-    ncell = size(x,1)
-    nbeads_per_cell = size(x,2)
+    ncell = size(x,2)
+    nbeads_per_cell = size(x,1)
 
     write(legacy_fd,*) 'Ignore this line'
 
@@ -24,7 +23,7 @@ program ccd_traj_to_legacy
         call traj_read(rec_index, timepoint)
         do l=1,ncell
             do i=1,nbeads_per_cell
-                write(legacy_fd,*)rec_index*traj_dump_int,l,i,x(l,i),y(l,i)
+                write(legacy_fd,*)rec_index*traj_dump_int,l,i,x(i,l),y(i,l)
             end do
         end do
     end do

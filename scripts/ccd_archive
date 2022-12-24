@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
-# Brief:
-# Usage: 
+# Brief: Archives (also compresses) and retrieves trajectory and final checkpoint
+# Usage: ccd_archive [-arc] <metadata file path>
+## -a: archive; -r : restore/retrieve; -c : clean. Default is archive.
+# Requirement: If archiving the files to be archived must be in present working directory
+
+set -e # Exit on first failure
 
 archive_path="${HOME}/.ccd"
 archive_path_traj="${archive_path}/trajectories"
 archive_path_cpt="${archive_path}/checkpoints"
+
+mkdir -p "${archive_path_traj}"
+mkdir -p "${archive_path_cpt}"
 
 local_traj_path="traj.bin"
 local_cpt_path="state.cpt"
@@ -13,28 +20,59 @@ hashf(){
     sha1sum "${1}" | cut -d ' ' -f 1
 }
 
+extract_hashes_from_metadata(){
+    local metadata_path="${1}"
+    traj_hash="$(grep -i TRAJ_HASH "${metadata_path}" | grep -iow '[0-9a-f]*')"
+    final_cpt_hash="$(grep -i FINAL_CPT_HASH "${metadata_path}" | grep -iow '[0-9a-f]*')"
+    init_cpt_hash="$(grep -i INIT_CPT_HASH "${metadata_path}" | grep -iow '[0-9a-f]*')"
+}
+
+integrity_check(){
+    [[ "${final_cpt_hash}" == "$(hashf "${local_cpt_path}")" ]] || \
+      { echo "Final checkpoint hash in metadata doesn't match that of ${local_cpt_path}"; exit 1;}
+      
+   [[ "${traj_hash}" == "$(hashf "${local_traj_path}")" ]] || \
+      { echo "Trajectory hash in metadata doesn't match that of ${local_traj_path}"; exit 1;}
+} >&2
+
 archive(){
     echo "Archiving ${local_traj_path} and ${local_cpt_path}" >&2
-    mv -f "${local_traj_path}" "${archive_path_traj}/$(hashf "${local_traj_path}")" || rm "${local_traj_path}"
-    mv -f "${local_cpt_path}" "${archive_path_cpt}/$(hashf "${local_cpt_path}")" || rm "${local_cpt_path}"
+    xz -v9 < "${local_traj_path}" > "${archive_path_traj}/${traj_hash}" && rm -v "${local_traj_path}"
+    mv -vf "${local_cpt_path}" "${archive_path_cpt}/${final_cpt_hash}" || rm -v "${local_cpt_path}"
 }
 
-extract(){
-    local metadata_path="${1}"
-    traj_hash="$(grep TRAJ_HASH "${metadata_path}" | grep -o '[0-9a-f]*')"
-    cpt_hash="$(grep FINAL_CPT_HASH "${metadata_path}" | grep -o '[0-9a-f]*')"
-    echo "Extracting ${local_traj_path} and ${local_cpt_path} referred in metadata file: ${metadata_path}" >&2
-    ln -vi "${archive_path_traj}/${traj_hash}" "${local_traj_path}"
-    ln -vi "${archive_path_cpt}/${cpt_hash}" "${local_cpt_path}"
+retrieve(){
+    echo "Retreiving ${local_traj_path} and ${local_cpt_path}" >&2
+    xzcat -v9 < "${archive_path_traj}/${traj_hash}" > "${local_traj_path}" && echo "${local_traj_path} created" >&2
+    ln -vf "${archive_path_cpt}/${final_cpt_hash}" "${local_cpt_path}"
+    integrity_check
 }
 
-mkdir -p "${archive_path_traj}"
-mkdir -p "${archive_path_cpt}"
+clean(){
+    echo "Cleaning archived trajectory" >&2
+    rm -vf "${archive_path_traj}/${traj_hash}"*
+    echo "Should I also clean the final checkpoint?"
+    rm -iv "${archive_path_cpt}/${final_cpt_hash}"
+    echo "Should I also clean the initial checkpoint?"
+    rm -iv "${archive_path_cpt}/${init_cpt_hash}"
+}
 
-metadata_path="${1}"
+mode=archive # The default
+while getopts :arc opt; do
+  case "${opt}" in
+    a) mode=archive;;
+    r) mode=retrieve;;
+    c) mode=clean;;
+    *) echo "Provided option is not supported" >&2; exit 1;;
+  esac
+done
 
-if [[ -n "${metadata_path}" ]]; then
-    extract "${metadata_path}"
-else
-    archive
-fi
+metadata_path="${!OPTIND}"
+
+[[ -n "${metadata_path}" ]] || read -ep "Provide metadata file: " metadata_path
+
+extract_hashes_from_metadata "${metadata_path}"
+
+[[ "${mode}" == archive ]] && { integrity_check || exit 1;}
+
+"${mode}"

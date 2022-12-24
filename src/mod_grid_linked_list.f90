@@ -67,8 +67,8 @@ module grid_linked_list
     do l=1,m	 !! Loop over rings
         do i=1,n !! Loop over beads
 
-		    x3 = x(l,i) - box*floor(x(l,i)/box)
-            y3 = y(l,i) - box*floor(y(l,i)/box)
+		    x3 = x(i,l) - box*floor(x(i,l)/box)
+            y3 = y(i,l) - box*floor(y(i,l)/box)
 
 
 			icell = grid_index(ceiling(x3 * celli), ceiling(y3 * celli)) ! determining the grid index for a particular bead
