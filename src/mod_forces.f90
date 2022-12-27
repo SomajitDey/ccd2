@@ -22,7 +22,7 @@ contains
 
         do i=1,n
 
-                   i_minus_1 = mod(i-2+n,n) + 1
+                   i_minus_1 = modulo(i-2,n) + 1
                    i_plus_1 = mod(i,n) + 1
                    
                    dx1 = x(i_minus_1,l)-x(i,l)

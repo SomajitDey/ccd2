@@ -12,11 +12,12 @@ module grid_linked_list
        
     contains
     
-    !! Function To Give Cell Index !!
+    !! 2D to 1D representation of the grid points !!
+    ! Assuming that within the central simulation box, ix and iy are within [1,w] 
     pure integer function grid_index(ix, iy)
         integer, intent(in):: ix,iy
 
-      	grid_index = 1 + mod(ix-1+w , w) + mod(iy-1+w , w) * w
+      	grid_index = 1 + modulo(ix-1, w) + modulo(iy-1, w)*w
     end function grid_index
 
 	!!*** Subroutine to set up the cells and to make the list of neighbouring cells through PBC ***!!
@@ -42,7 +43,7 @@ module grid_linked_list
         	do ix=1,w
 
 			
-			igridmap = (grid_index(ix,iy) - 1) * 4
+			igridmap = (grid_index(ix,iy) - 1)*4
 		
 			gridmap(igridmap+1) = grid_index(ix+1,iy)
 			gridmap(igridmap+2) = grid_index(ix+1,iy+1)
@@ -56,7 +57,6 @@ module grid_linked_list
 	!!*** Subroutine to make linked lists & head of chain arrays ***!!
 	subroutine links()
 	integer:: icell,l,i, bead_index
-    double precision :: x3,y3
 	
    	!! Zero Head Of Chain Array & List Array !!
     bead_nl_head = 0
@@ -67,12 +67,8 @@ module grid_linked_list
     do l=1,m	 !! Loop over rings
         do i=1,n !! Loop over beads
 
-		    x3 = x(i,l) - box*floor(x(i,l)/box)
-            y3 = y(i,l) - box*floor(y(i,l)/box)
-
-
-			icell = grid_index(ceiling(x3 * celli), ceiling(y3 * celli)) ! determining the grid index for a particular bead
-
+            ! determining the grid index for a particular bead
+			icell = grid_index(ceiling(x(i,l)*celli), ceiling(y(i,l)*celli))
 			
 			bead_index = (l-1)*n+i ! Global serial of the bead : [1,mn]
 
