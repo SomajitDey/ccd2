@@ -5,5 +5,5 @@ program ccd_cpt_to_xy
     character(len=40) :: params_hash
     
     call cpt_read(timepoint, recnum, pending_steps, params_hash)
-    call xy_dump('config.xy', box)
+    call xy_dump('config.xy', box, x, y)
 end program ccd_cpt_to_xy

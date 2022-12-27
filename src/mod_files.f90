@@ -73,6 +73,22 @@ module files
         mx = mx / m_norm
         my = my / m_norm
     end subroutine traj_read
+    
+    ! Reads only x,y info from trajectory in threadsafe manner
+    ! It is threadsafe because it doesn't access any global variable
+    subroutine threadsafe_traj_read_xy_only(recnum, timepoint, x, y)
+        integer, intent(in) :: recnum
+        real, intent(out) :: timepoint
+        double precision, dimension(:,:), intent(out) :: x,y
+        real, dimension(size(x,1), size(x,2), 10) :: compressed_fp_for_io
+        integer :: io_stat
+        
+        read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) timepoint, compressed_fp_for_io
+        if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
+
+        x = dble( compressed_fp_for_io(:,:,1) )
+        y = dble( compressed_fp_for_io(:,:,2) )
+    end subroutine threadsafe_traj_read_xy_only
 
     subroutine traj_write(recnum, timepoint)
         use ring_nb, only: pack_ring_nb, init_ring_nb
@@ -158,9 +174,12 @@ module files
     end subroutine cpt_write
 
     ! Dumps xy file for any frame/timestep to be consumed by third party apps like gnuplot
-    subroutine xy_dump(fname, boxlen, title)
-        double precision, intent(in) :: boxlen
+    ! This routine is threadsafe provided different threads use different `fname`s
+    ! x and y are passed as arguments to aid threadsafety
+    subroutine xy_dump(fname, boxlen, x, y, title)
         character(len=*), intent(in) :: fname
+        double precision, intent(in) :: boxlen
+        double precision, dimension(:,:), intent(in) :: x,y
         character(len=*), intent(in), optional :: title
         integer :: fd, l, i
 
@@ -175,9 +194,9 @@ module files
             write(fd,'(/)') ! Two consecutive blank records for separating datasets, each containing single cell info
             write(fd,'(a,1x,i0)') '#Cell:', l
             do i=1,size(x,1)
-				   x(i,l) = x(i,l) - boxlen*floor(x(i,l)/boxlen)
-				   y(i,l) = y(i,l) - boxlen*floor(y(i,l)/boxlen)
-                   write(fd,'(es23.16,1x,es23.16)') x(i,l),y(i,l)
+                   ! Output folded coordinates
+                   write(fd,'(es23.16,1x,es23.16)') &
+                       x(i,l) - boxlen*floor(x(i,l)/boxlen), y(i,l) - boxlen*floor(y(i,l)/boxlen)
             end do
             write(fd,'(a,1x,i0)') '#End_Cell:', l
           end do
