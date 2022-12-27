@@ -16,6 +16,7 @@ module files
     character(len=40), protected :: init_cpt_hash, final_cpt_hash, traj_hash    
     namelist /checksums/ init_cpt_hash, final_cpt_hash, traj_hash
     
+    !TODO: traj_dump_int should be user input parameter. Move it to mod_parameters
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
     integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval
@@ -25,6 +26,9 @@ module files
     real, dimension(:,:,:), allocatable, private :: compressed_fp_for_io
     ! Double to single precision compression. Multiple arrays compressed into one big array
     ! Declaring as permanent to avoid overhead of repetitive allocation and deallocation as temporary array
+    ! Single precision storage (trajectory only, not checkpoint) and double precision computation following:
+    ! https://github.com/FortRun/resources/blob/main/Fortran%20Handbook.md
+    ! #real8-or-real16double-precision-why-store-in-real8-and-compute-in-real16
 
     contains
     
@@ -32,7 +36,7 @@ module files
         character(len=*), intent(in) :: read_or_write, old_or_replace
         integer :: reclen, io_stat, alloc_stat
 
-        allocate(compressed_fp_for_io(10,size(x,1),size(x,2)), stat=alloc_stat)
+        allocate(compressed_fp_for_io(size(x,1),size(x,2),10), stat=alloc_stat)
         if(alloc_stat /= 0) error stop 'Problem in allocating compressed_fp_for_io'
         !TODO: All error stops should contain the subroutine/module name and variable name
         
@@ -54,16 +58,16 @@ module files
         if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
         call unpack_ring_nb()
 
-        x = dble( compressed_fp_for_io(1,:,:) )
-        y = dble( compressed_fp_for_io(2,:,:) )
-        mx = dble( compressed_fp_for_io(3,:,:) )
-        my = dble( compressed_fp_for_io(4,:,:) )
-        fx = dble( compressed_fp_for_io(5,:,:) )
-        fy = dble( compressed_fp_for_io(6,:,:) )
-        f_rpx = dble( compressed_fp_for_io(7,:,:) )
-        f_rpy = dble( compressed_fp_for_io(8,:,:) )
-        f_adx = dble( compressed_fp_for_io(9,:,:) )
-        f_ady = dble( compressed_fp_for_io(10,:,:) )
+        x = dble( compressed_fp_for_io(:,:,1) )
+        y = dble( compressed_fp_for_io(:,:,2) )
+        mx = dble( compressed_fp_for_io(:,:,3) )
+        my = dble( compressed_fp_for_io(:,:,4) )
+        fx = dble( compressed_fp_for_io(:,:,5) )
+        fy = dble( compressed_fp_for_io(:,:,6) )
+        f_rpx = dble( compressed_fp_for_io(:,:,7) )
+        f_rpy = dble( compressed_fp_for_io(:,:,8) )
+        f_adx = dble( compressed_fp_for_io(:,:,9) )
+        f_ady = dble( compressed_fp_for_io(:,:,10) )
         
         m_norm = dsqrt(mx*mx + my*my)
         mx = mx / m_norm
@@ -76,16 +80,16 @@ module files
         real, intent(in) :: timepoint
         integer :: io_stat
 
-        compressed_fp_for_io(1,:,:) = real(x)
-        compressed_fp_for_io(2,:,:) = real(y)
-        compressed_fp_for_io(3,:,:) = real(mx)
-        compressed_fp_for_io(4,:,:) = real(my)
-        compressed_fp_for_io(5,:,:) = real(fx)
-        compressed_fp_for_io(6,:,:) = real(fy)
-        compressed_fp_for_io(7,:,:) = real(f_rpx)
-        compressed_fp_for_io(8,:,:) = real(f_rpy)
-        compressed_fp_for_io(9,:,:) = real(f_adx)
-        compressed_fp_for_io(10,:,:) = real(f_ady)
+        compressed_fp_for_io(:,:,1) = real(x)
+        compressed_fp_for_io(:,:,2) = real(y)
+        compressed_fp_for_io(:,:,3) = real(mx)
+        compressed_fp_for_io(:,:,4) = real(my)
+        compressed_fp_for_io(:,:,5) = real(fx)
+        compressed_fp_for_io(:,:,6) = real(fy)
+        compressed_fp_for_io(:,:,7) = real(f_rpx)
+        compressed_fp_for_io(:,:,8) = real(f_rpy)
+        compressed_fp_for_io(:,:,9) = real(f_adx)
+        compressed_fp_for_io(:,:,10) = real(f_ady)
         
         call pack_ring_nb()
         write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
@@ -164,14 +168,18 @@ module files
             action='write')
             if(present(title)) write(fd, '(a,1x,a)') '#Title:', title
             write(fd,'(a,1x,es23.16)') '#Box:', boxlen
+            write(fd,'(a)') '#Column headers:'
+            write(fd,'(a,4x,a)') 'x', 'y'
+
           do l=1,size(x,2)
+            write(fd,'(/)') ! Two consecutive blank records for separating datasets, each containing single cell info
             write(fd,'(a,1x,i0)') '#Cell:', l
             do i=1,size(x,1)
 				   x(i,l) = x(i,l) - boxlen*floor(x(i,l)/boxlen)
 				   y(i,l) = y(i,l) - boxlen*floor(y(i,l)/boxlen)
-                write(fd,*) x(i,l),y(i,l)
+                   write(fd,'(es23.16,1x,es23.16)') x(i,l),y(i,l)
             end do
-            write(fd,'(a,1x,i0,/)') '#End_Cell:', l
+            write(fd,'(a,1x,i0)') '#End_Cell:', l
           end do
         close(fd, status='keep')
     end subroutine xy_dump

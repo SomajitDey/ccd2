@@ -13,11 +13,15 @@ Work in progress. Check [TODO](#TODO) list below.
 - [pv](https://command-not-found.com/pv) for showing real-time progress bar
 - [gnuplot](https://command-not-found.com/gnuplot) for visualization
 - [xz](https://command-not-found.com/xz) for trajectory compression
+- [ffmpeg](https://command-not-found.com/ffmpeg) for movie generation
 
 # Build
 - Install, if non-existent, the above [dependencies](#dependencies) first
 
-- Download this project: `git clone --depth=1 https://github.com/PhyBi/Collective-Cell-Dynamics ccd`
+- Download this project:
+```bash
+git clone --depth=1 https://github.com/PhyBi/Collective-Cell-Dynamics ccd
+```
 
 - Change to the downloaded project directory: `cd ccd`
 
@@ -36,7 +40,11 @@ If you don't want to install it right away but test: `. setup_test_env.sh`
 # Command-line
 `ccd`
 
+Supported subcommands are available using bash-completion: `ccd <TAB><TAB>`
+
 # Sample Workflow
+The information in this section is anything but exhaustive; the subcommands are more versatile than apparent from what follows. Use the `-h` option in each subcommand to see its detailed usage. For any queries, feel free to ask [us](https://github.com/PhyBi/Collective-Cell-Dynamics/discussions).
+
 - Create and change into a new directory.
 
 - Copy and edit the [params.in](/params.in) file. *Put only those key-value pairs for the run parameters that you don't want the default for*. `ccd show_params` lists all parameters ccd takes. For meaning and default values of the parameters, please look up [src/mod_parameters.f90](/src/mod_parameters.f90).
@@ -46,26 +54,31 @@ If you don't want to install it right away but test: `. setup_test_env.sh`
 ccd init
 
 # Run
-ccd run [-a | --append] [-n | --no-status-dump] [-f | --force] > metadata.txt 2> logfile.txt
+ccd run > 'metadata.txt' 2> 'logfile.txt'
 
 # State/Checkpoint(state.cpt) to XY dump(config.xy)
 ccd cpt_to_xy
 
-# Visualize config from XY dump(config.xy)
-ccd visual # Use the GNUPLOT_PATH env variable if gnuplot is not in PATH
+# Visualize config from XY dump (config.xy), highlighting the 10th cell in green
+ccd visual -H '10@green' # Use the GNUPLOT_PATH env variable if gnuplot is not in PATH
 
 # To check live run progress
 ccd status
 
+# Make a movie (.mp4) of length=15 seconds out of the trajectory (traj.bin)
+ccd traj_to_xy 'movie'
+ccd movie -l 15 'movie'
+
 # To archive run results (trajectory: traj.bin and final-state/checkpoint: state.cpt)
-ccd archive metadata.txt
+ccd archive 'metadata.txt'
 
 # To retrieve/restore archived run results
-ccd retrieve metadata.txt
+ccd retrieve 'metadata.txt'
 
 # Garbage cleanup
-ccd clean_archive metadata.txt
+ccd clean_archive 'metadata.txt'
 ```
+
 ### Other ways to pass parameters
 - If you want to use another path instead of `params.in` for the run-parameter file, put the same in the enviroment variable `CCD_PARAMS_PATH`
 
@@ -126,7 +139,7 @@ This software is built from a monolithic legacy code. Hence much had and still w
 - [ ] performance oriented profiling and polishing
 - [x] enhancing the driver code (`ccd`) as well as the bash-completion script
 - [x] compression and archiving of run results (trajectory etc.). Also provide retrieval and garbage cleaning tools.
-- [ ] include detailed [docs](docs/)
+- [ ] include -h\|--help for each subcommand using `helpdoc` tool. Detailed [docs](docs/)
 - [ ] include analysis tools (legacy or new)
-- [ ] include movie making tools : ccd traj_to_xy and ccd movie (gif and mp4)
+- [x] include movie making tools : ccd traj_to_xy and ccd movie (gif and mp4)
 - [ ] install signal handlers for dumping progress status

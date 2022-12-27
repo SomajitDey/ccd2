@@ -1,0 +1,13 @@
+# Brief: This is the bash-completion script for command: __package__
+## It completes only the 1st argument non-trivially. Other arguments are completed as usual by GNU Readline
+## Words enclosed with __ are placeholders
+
+package='__package__'
+
+_complete(){
+  local sub_cmds='__subcmds__'
+  [[ "${COMP_CWORD}" == 1 ]] || return 1
+  COMPREPLY=( $(compgen -W "${sub_cmds}" "${2}") )
+}
+
+complete -F _complete -o default "${package}"

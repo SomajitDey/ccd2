@@ -1,24 +1,91 @@
 #!/usr/bin/env bash
 # Brief: Plots the given config using gnuplot.
-# Usage: ccd_visual [<xy file>]
+# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [<path/file.xy>]
+## <type> = png | pdf | eps | svg
+## <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>
+## <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
+## Provide the optional '#' if you want solid fill
 # Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
-#### such as while accessing wgnuplot.exe from within WSL
+## such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
 
+# Setting gnuplot alias
 gplot="${GNUPLOT_PATH:-$(which gnuplot)}"
 
-xyfile="${1:-config.xy}"
+# Create tmp gnuplot script with autoremoval on exit
+tmp_plt_script="$(mktemp .tmp.XXXX.plt)"
+trap "rm -f ${tmp_plt_script}" EXIT
+
+while getopts :H:t: opt; do
+  case "${opt}" in
+    H) 
+        parameter="${OPTARG,,}" # Convert to lowercase
+        parameter="${parameter%#}"
+        index="${parameter%%@*}"
+        color="${parameter##*@}"
+        [[ "${color}" == "${parameter}" ]] && color='blue'
+        # Build the plot command through append
+        plt_cmd="${plt_cmd}, '' index ${index} using 1:2 linecolor '${color}' pointtype 7 pointsize 0.5"
+        [[ "${OPTARG: -1}" == '#' ]] && plt_cmd="${plt_cmd} with filledcurves closed"
+        ;;
+    t) 
+        output_type="${OPTARG,,}" # Convert to lowercase
+        case "${output_type}" in
+            png)
+                term_cmd="set terminal png size 1080,1080 crop background rgbcolor('white') enhanced font 'arial,14'"
+                ;;
+            pdf)
+                term_cmd="set terminal pdfcairo enhanced size 8.6cm,8.6cm background rgbcolor('white') font 'arial,14'"
+                ;;
+            eps)
+                term_cmd="set terminal postscript eps enhanced size 8.6cm,8.6cm clip nobackground color font 'arial,14'"
+                ;;
+            svg)
+                term_cmd="set terminal svg enhanced size 1080,1080 background rgbcolor('white') font 'arial,14'"
+                ;;
+            *) 
+                echo "Provided output type not supported" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+    *) 
+        echo "Provided option not supported" >&2
+        exit 1
+        ;;
+  esac
+done
+
+# Accessing the first non-option argument, if any, which is supposed to be a (non-default) xy file
+xyfile="${!OPTIND:-config.xy}"
+echo "Reading config file: ${xyfile}" >&2
+[[ -f "${xyfile}" ]] || { echo "Config file not found" >&2; exit 1;}
+
+# If output type is interactive (non-batch mode) then gnuplot must have the --persist option.
+if [[ -v output_type ]]; then
+    output_file="${xyfile%.xy}.${output_type}"
+    echo "Creating output file: ${output_file}" >&2
+    term_cmd="${term_cmd}; set output '${output_file}'"
+else
+    persist='--persist'
+fi
+
+# Extract metadata
 title="$(grep '#Title:' "${xyfile}" | cut -d ' ' -f 2-)"
 box="$(grep '#Box:' "${xyfile}" | awk '{print $2}')"
-tmp_plt_script="$(mktemp .tmp.XXXX.plt)"
 
+# Prep the script and execute with gnuplot
 cat > "${tmp_plt_script}" << EOF
-    set xr[0:"${box}"]
-    set yr[0:"${box}"]
+    ${term_cmd}
+    set xrange [0:${box}]
+    set yrange [0:${box}]
+    set border linewidth 5
     unset tics
-    set title "${title}"
-    pl "${xyfile}" u 1:2 lt -1 pt 7 ps 0.5 t ""
+    unset key
+    set title '${title}'
+    #set size square
+    plot '${xyfile}' using 'x':'y' linecolor black pointtype 7 pointsize 0.5 \
+        ${plt_cmd}
+    set output
 EOF
-
-eval "${gplot}" --persist "${tmp_plt_script}"
-rm -f "${tmp_plt_script}"
+eval "${gplot}" "${persist}" "${tmp_plt_script}" && echo "Done visualizing ${xyfile}" >&2

@@ -28,10 +28,11 @@ contains
         !$omp end do
     end subroutine init_ring_nb
     
-    pure integer function index_packed_strictly_upper_triang_mat(l, q) result(array_1d_index)
+    integer function index_packed_strictly_upper_triang_mat(l, q) result(array_1d_index)
         integer, intent(in) :: l, q
         integer :: row, col
         
+        if(l==q) error stop 'Row number cannot be equal to column number in a strictly upper triangular matrix'
         row = min(l,q)
         col = max(l,q)
         array_1d_index = (col-1)*(col-2)/2 + row
@@ -45,7 +46,7 @@ contains
         ring_nb_yesno_packed(i) = i
     end subroutine assert_are_nb_rings
     
-    pure logical function are_nb_rings(l, q) result(check)
+    logical function are_nb_rings(l, q) result(check)
         integer, intent(in) :: l, q
 
         check = ( ring_nb_yesno_packed( index_packed_strictly_upper_triang_mat(l, q) ) /= 0 )

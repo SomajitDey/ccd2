@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Brief: Makes movie from the xy files in the given directory.
+# Usage: ccd_movie [-l <length_in_seconds>] [<directory>]
+
+duration=15 # Deafult duration in seconds
+while getopts :l: opt; do
+    case "${opt}" in
+        l) duration="${OPTARG}"; (( duration > 0)) || exit 1;;
+        *) echo "Provided option not supported" >&2; exit 1;;
+    esac
+done
+
+xy_dir="${!OPTIND}"
+[[ -d "${xy_dir}" ]] || read -ep "Provide directory containing xy frames: " xy_dir
+xy_dir="${xy_dir%/}" # Trimming trailing slash, if any
+
+trap "rm -f ${xy_dir}/*.png" EXIT
+
+frame_count="$(ls -1 "${xy_dir}"/*.xy | wc --lines)"
+
+ls "${xy_dir}"/*.xy | xargs --max-args=1 --no-run-if-empty ccd visual -t png -H1
+
+# http://trac.ffmpeg.org/wiki/Slideshow#Framerates
+ffmpeg -framerate ${frame_count}/${duration} -pattern_type glob -i "${xy_dir}/*.png" -c:v libx264 -r 60 -pix_fmt yuv420p "${xy_dir##*/}".mp4

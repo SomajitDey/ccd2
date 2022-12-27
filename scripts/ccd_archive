@@ -36,6 +36,7 @@ integrity_check(){
 } >&2
 
 archive(){
+    integrity_check
     echo "Archiving ${local_traj_path} and ${local_cpt_path}" >&2
     xz -v9 < "${local_traj_path}" > "${archive_path_traj}/${traj_hash}" && rm -v "${local_traj_path}"
     mv -vf "${local_cpt_path}" "${archive_path_cpt}/${final_cpt_hash}" || rm -v "${local_cpt_path}"
@@ -72,7 +73,5 @@ metadata_path="${!OPTIND}"
 [[ -n "${metadata_path}" ]] || read -ep "Provide metadata file: " metadata_path
 
 extract_hashes_from_metadata "${metadata_path}"
-
-[[ "${mode}" == archive ]] && { integrity_check || exit 1;}
 
 "${mode}"
