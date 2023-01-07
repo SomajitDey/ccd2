@@ -3,11 +3,11 @@
 program ccd_traj_to_legacy
     use files
     implicit none
-    integer :: pending_steps, rec_index, ncell, nbeads_per_cell, l, i, legacy_fd
+    integer :: pending_steps, current_step, rec_index, ncell, nbeads_per_cell, l, i, legacy_fd
     character(len=40) :: params_hash
     character(len=*), parameter :: legacy_fname = 'legacy.traj.txt'
     
-    call cpt_read(timepoint, recnum, pending_steps, params_hash)
+    call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
     
     call open_traj('read', 'old')
 
@@ -15,15 +15,12 @@ program ccd_traj_to_legacy
 
     ncell = size(x,2)
     nbeads_per_cell = size(x,1)
-
-    write(legacy_fd,*) 'Ignore this line'
-
     
     do rec_index = 1, recnum
         call traj_read(rec_index, timepoint)
         do l=1,ncell
             do i=1,nbeads_per_cell
-                write(legacy_fd,*)rec_index*traj_dump_int,l,i,x(i,l),y(i,l)
+                write(legacy_fd,'(3(i0,1x), es23.16, 1x, es23.16)') rec_index*traj_dump_int,l,i,x(i,l),y(i,l)
             end do
         end do
     end do

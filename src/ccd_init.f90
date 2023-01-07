@@ -22,5 +22,5 @@ program ccd_init
     call initial()
     call initial_angle()
     
-    call cpt_write(timepoint, recnum, 0)
+    call cpt_write(timepoint, recnum, 0, 1)
 end program ccd_init

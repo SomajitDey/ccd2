@@ -49,6 +49,8 @@ The information in this section is anything but exhaustive; the subcommands are 
 
 - Copy and edit the [params.in](/params.in) file. *Put only those key-value pairs for the run parameters that you don't want the default for*. `ccd show_params` lists all parameters ccd takes. For meaning and default values of the parameters, please look up [src/mod_parameters.f90](/src/mod_parameters.f90).
 
+- Simulations also produce/use/update two *non-portable* binary files: the trajectory (`traj.bin`) and a checkpoint (`state.cpt`). The checkpoint serves dual purpose: run recovery and initialization. It helps in run recovery by storing the last uncorrupted record/frame number in the trajectory file as well as the number of pending timesteps and the current timestep. Initialization is served by storing the complete memory representation of the coordinates at a timepoint (state).
+
 ```bash
 # Random initialization
 ccd init

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#Brief: Performs basic tests
+
+set -e # Exit on first failure
+
+echo -e "\nBuilding in debug mode\n"
+make FC=ifort OMP=set DEBUG=set rebuild
+
+echo -e "Setting up test environment"
+. setup_test_env.sh
+
+echo -e "\nExecuting ccd init\n"
+ccd init
+echo -e "\nExecuting ccd cpt_to_xy\n"
+ccd cpt_to_xy
+echo -e "\nExecuting ccd visual\n"
+ccd visual
+echo -e "\nExecuting ccd run\n"
+ccd run -n -f
+echo -e "\nExecuting ccd run in append mode\n"
+ccd run -n -f -a
+echo -e "\nExecuting ccd run in append mode while passing parameters\n"
+ccd -p 'nsamples=1' run -n -f -a
+echo -e "\nExecuting ccd cpt_to_xy\n"
+ccd cpt_to_xy
+echo -e "\nExecuting ccd visual\n"
+ccd visual
+echo "Passed"

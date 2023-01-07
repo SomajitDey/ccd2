@@ -2,4 +2,4 @@
 # Brief: Shows progress of ccd_run
 
 status_file=status.lock
-tail -n+2 -f "${status_file}" | pv -p -e -l -s $(head -n1 "${status_file}") > /dev/null
+tail -n+2 -f "${status_file}" | pv -p -e -l -s $(head -n1 "${status_file}"  | awk '{print $1}') > /dev/null

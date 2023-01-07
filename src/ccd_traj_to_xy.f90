@@ -6,7 +6,7 @@ program ccd_traj_to_xy
     use utilities, only: int_to_char
     !$ use omp_lib, only: omp_get_max_threads
     implicit none
-    integer :: pending_steps, rec_index
+    integer :: pending_steps, current_step, rec_index
     character(len=40) :: params_hash
     integer :: frame
     character(len=*), parameter :: dump_fname_prefix = 'frame_', dump_fname_suffix='.xy'
@@ -26,7 +26,7 @@ program ccd_traj_to_xy
     call execute_command_line('mkdir -p '//dump_dir, exitstat=exitcode)
     if(exitcode /= 0) error stop 'Failed to create directory '//dump_dir
     
-    call cpt_read(timepoint, recnum, pending_steps, params_hash)
+    call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
     allocate(x_(size(x,1),size(x,2)), y_(size(y,1),size(y,2)))
     
     call open_traj('read', 'old')

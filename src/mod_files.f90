@@ -19,7 +19,7 @@ module files
     !TODO: traj_dump_int should be user input parameter. Move it to mod_parameters
     integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
     integer, parameter:: status_dump_int=100 ! Status file dump interval
-    integer, parameter:: cpt_dump_int=50*traj_dump_int ! Checkpoint file dump interval
+    integer, parameter:: cpt_dump_int=5000 ! Checkpoint file dump interval
 
     logical :: do_status_dump = .true. ! This flag may be set and unset using signals
     
@@ -119,9 +119,9 @@ module files
         deallocate(compressed_fp_for_io)
     end subroutine close_traj
 
-    subroutine cpt_read(timepoint, recnum, pending_steps, params_hash)
+    subroutine cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
                 real, intent(out) :: timepoint
-                integer, intent(out) :: recnum, pending_steps
+                integer, intent(out) :: recnum, pending_steps, current_step
                 character(len=40), intent(out) :: params_hash
                 integer :: ncells, nbeads_per_cell, io_stat
 
@@ -137,7 +137,7 @@ module files
                     read(cpt_fd) x,y,mx,my ! Saves current state of the physical system
                     read(cpt_fd) timepoint ! Saves current time instant for the timeseries
                     read(cpt_fd) recnum ! Last record number of trajectory file, as of now
-                    read(cpt_fd) pending_steps ! How many steps are still pending for the current run
+                    read(cpt_fd) current_step, pending_steps ! How many steps are still pending for the current run
                     read(cpt_fd) params_hash
                 close(cpt_fd)
 
@@ -146,10 +146,10 @@ module files
                 init_cpt_hash = sha1(cpt_fname)
     end subroutine cpt_read
     
-    subroutine cpt_write(timepoint, recnum, pending_steps)
+    subroutine cpt_write(timepoint, recnum, pending_steps, current_step)
                 use parameters, only: m,n
                 real, intent(in) :: timepoint
-                integer, intent(in) :: recnum, pending_steps
+                integer, intent(in) :: recnum, pending_steps, current_step
 
                 ! Complete trajectory-file dumps so far and flush output buffer
                 wait(traj_fd)
@@ -164,7 +164,7 @@ module files
                     write(cpt_fd) x,y,mx,my ! Saves current state of the physical system
                     write(cpt_fd) timepoint ! Saves current time instant for the timeseries
                     write(cpt_fd) recnum ! Last record number of trajectory file, as of now
-                    write(cpt_fd) pending_steps ! How many steps are still pending for the current run
+                    write(cpt_fd) current_step, pending_steps ! How many steps are still pending for the current run
                     write(cpt_fd) sha1(params_fname)
                 close(cpt_fd)
                 ! Atomically moving .cpt.tmp to *.cpt now
@@ -195,8 +195,7 @@ module files
             write(fd,'(a,1x,i0)') '#Cell:', l
             do i=1,size(x,1)
                    ! Output folded coordinates
-                   write(fd,'(es23.16,1x,es23.16)') &
-                       x(i,l) - boxlen*floor(x(i,l)/boxlen), y(i,l) - boxlen*floor(y(i,l)/boxlen)
+                   write(fd,'(es23.16,1x,es23.16)') modulo(x(i,l), boxlen), modulo(y(i,l), boxlen)
             end do
             write(fd,'(a,1x,i0)') '#End_Cell:', l
           end do
@@ -263,7 +262,7 @@ module files
         write(err_fd,'(a)') 'CPU = '//dhms(cpusec)
         write(err_fd,'(a)') 'Wallclock = '//dhms(wcsec)
         write(err_fd,'(a,1x,i0)') '# Threads = ', nint(cpusec/wcsec)
-        write(err_fd,'(a,1x,i0,1x,a,/)')'Rate =', nint(steps*3600/wcsec), 'steps/hour'
+        write(err_fd,'(a,1x,i0,1x,a,/)')'Rate =', nint((steps/wcsec)*3600), 'steps/hour'
     end subroutine perf_dump
    
     subroutine log_this(msg)

@@ -3,14 +3,14 @@ module prerun
     
     contains
     
-    subroutine prerun_setup(jf)
+    subroutine prerun_setup(ji,jf)
         use state_vars
         use parameters
         use files
         !$ use omp_lib, only: omp_get_max_threads
         
-        integer, intent(out) :: jf
-        integer :: pending_steps
+        integer, intent(out) :: ji,jf
+        integer :: pending_steps, current_step
         character(len=40) :: params_hash
         character(len=len('replace')) :: traj_status
         ! Holds either 'old' or 'replace', same as status= specifier in an open statement
@@ -20,7 +20,7 @@ module prerun
             'Uh-oh...seems like another run is going on in the current working directory. I better stop than mess up'
         
         call log_this('Reading initial state from '//cpt_fname)
-        call cpt_read(timepoint, recnum, pending_steps, params_hash)
+        call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
 
         call log_this('Reading run parameters from '//params_fname)
         call assign_params(params_fname)
@@ -43,17 +43,27 @@ module prerun
         
         if(finish_prev_run .or. append_flag_present) then
             traj_status='old'
-            recnum=recnum+1
-            timepoint=timepoint+dt
         else
             traj_status='replace'
-            recnum = 1
+            recnum = 0
             timepoint = 0.0
         end if
-        if(.not. finish_prev_run) pending_steps = 0
-        jf = nsamples*traj_dump_int + pending_steps
 
-        write(status_fd,'(i0)') jf/status_dump_int
+        if(.not. finish_prev_run) then
+            pending_steps = nsamples*traj_dump_int - 1
+            current_step = 1
+        end if
+
+        ji = current_step
+        jf = ji + pending_steps
+        if(append_flag_present .and. finish_prev_run) jf = jf + nsamples*traj_dump_int
+
+        write(status_fd,'(i0, 1x, a)') jf/status_dump_int, 'new lines to follow'
+        if(ji/status_dump_int == 1) then
+            write(status_fd,*)
+        else if(ji/status_dump_int > 1) then
+            write(status_fd, '('//int_to_char(ji/status_dump_int - 1)//'/)')
+        end if
         flush(status_fd)
         
         call log_this('Opening trajectory file: '//traj_fname)

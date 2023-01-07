@@ -1,5 +1,4 @@
 #! /usr/bin/env bash
-# Brief: This script outputs line in given fortran code that has width > 120 cols.
-# This is basically a check for compatibility with the prescribed style guide.
-# Synopsis: <this> <file.f90>
+# Brief: This script extracts all TODOs from the given source file(s)
+# Synopsis: <this> <file.f90> ...
 grep --ignore-case --color --byte-offset --line-number --with-filename --initial-tab todo "${@}"

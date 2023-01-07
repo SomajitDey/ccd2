@@ -15,11 +15,11 @@ program ccd_run
 
     implicit none
 
-	integer:: j1,jf
+	integer:: j1,ji,jf
     real:: cpusec,wcsec
 
     ! Initialize/Pre-run setup
-    call prerun_setup(jf)
+    call prerun_setup(ji,jf)
     
     call log_this('Setting up neighbor list grids')
 	call gridmaps
@@ -29,7 +29,7 @@ program ccd_run
     call timestamp()
 
 	!$omp parallel default(shared) private(j1)
-    timeseries: do j1=1,jf
+    timeseries: do j1=ji,jf
 
 	call force()
 
@@ -43,50 +43,48 @@ program ccd_run
 
     !$omp single
     ! links() couldn't be parallelized easily as most of it needs to run sequentially. 
-    !TODO: TBD: Would omp ordered really increase overhead?
     call links()
     !$omp end single
-
+    
 	call interaction(store_ring_nb = mod(j1,traj_dump_int).eq.0)
 
     !$omp sections
     !$omp section
-    traj_dump: if(mod(j1,traj_dump_int).eq.0) then
-            call traj_write(recnum, timepoint)
-
-            cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
-                call cpt_write(timepoint, recnum, jf-j1)
+             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
+                call cpt_write(timepoint, recnum, jf-j1, j1)
                 call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
              end if cpt_dump
 
-            recnum = recnum + 1 ! Update record number must be after cpt_dump, if any
+        traj_dump: if(mod(j1,traj_dump_int).eq.0) then
+            recnum = recnum + 1
+            call traj_write(recnum, timepoint)
         end if traj_dump
 
+        timepoint = timepoint + dt ! Update timepoint
     !$omp section
         for_pv: if(mod(j1,status_dump_int).eq.0) then
             call status_dump()
         end if for_pv
     !$omp end sections
     
-	call move_noise() ! Update state
-
-    !$omp single
-	timepoint = timepoint + dt ! Update timepoint
-    !$omp end single
+	call move_noise() ! Update state (coordinates)
 
     end do timeseries
     !$omp end parallel
 
+    ! Because coordinates were update before exiting timeseries, update prng_seeds too. Required for cpt_dump later
+    call random_seed(get = prng_seeds)
+
     call timestamp(cpusec,wcsec)
 
     call log_this('Run complete. Writing final checkpoint')
-    call cpt_write(real(timepoint-dt), recnum-1, 0)
+    call cpt_write(timepoint, recnum, 0, 1)
 
     call close_traj()
 
     call metadata_dump()
 
-    call perf_dump(cpusec, wcsec, jf)
+    call perf_dump(cpusec, wcsec, jf-ji+1)
 
     call log_this('Done')
 

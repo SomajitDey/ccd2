@@ -1,0 +1,26 @@
+set -e # Exit on first failure
+
+# Single threaded build
+make FC=ifort rebuild
+. setup_test_env.sh
+
+# Initialization
+ccd init; ln -f state.cpt init.cpt
+
+# Run nsamples=2 from init.cpt
+ccd -p nsamples=2 run -n -f
+ccd cpt_to_xy
+mv -f config.xy config.xy.2 ; mv -f traj.bin traj.bin.2
+
+# Run nsamples=1+1 from init.cpt
+ln -f init.cpt state.cpt
+ccd -p nsamples=1 run -n -f && ccd -p nsamples=1 run -n -f -a
+ccd cpt_to_xy
+mv -f config.xy config.xy.1+1 ; mv -f traj.bin traj.bin.1+1
+
+# Compare the final traj and xy from both runs. They should agree.
+diff -q traj.bin.1+1 traj.bin.2 && echo 'Good with traj' || false
+diff -q config.xy.1+1 config.xy.2 && echo 'Good with config' || false
+echo 'Passed'
+
+rm -f traj.bin* config.xy* state.cpt*
