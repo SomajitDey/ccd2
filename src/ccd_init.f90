@@ -1,8 +1,13 @@
+!Brief: Initializes state. Positions are initialized randomly. Motility vectors initialized isotropically by default.
+!Usage: ccd_init [-r | --random]
+! -r | --random : Initialize motility unit vectors randomly. Vicsek order parameter may not be zero.
+
 program ccd_init
     use parameters
     use state_vars
     use init
     use files
+    use utilities, only: cmd_line_flag
     implicit none
     
     integer :: clock_tick
@@ -20,7 +25,9 @@ program ccd_init
     call random_seed(put = prng_seeds)
 
     call initial()
-    call initial_angle()
+    if (cmd_line_flag('-r') .or. cmd_line_flag('--random')) call initial_angle()
     
     call cpt_write(timepoint, recnum, 0, 1)
+    
+    write(*,'(a,1x,"(",es23.16,",",es23.16,")")') 'Average motility vector:', sum(mx)/(m*n), sum(my)/(m*n)
 end program ccd_init

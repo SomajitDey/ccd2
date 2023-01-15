@@ -1,6 +1,7 @@
 module integrator
 
 implicit none
+double precision :: evolve_motility_bool=1.0d0
 
 contains
 
@@ -24,7 +25,7 @@ contains
            y(i,l) = y(i,l) + vy
             
       
-            wz = (mx(i,l)*vy - my(i,l)*vx)/(tau_align*dt) + noise(tmp+i)
+            wz = ((mx(i,l)*vy - my(i,l)*vx)/(tau_align*dt) + noise(tmp+i))*evolve_motility_bool
             theta_x = -my(i,l)*wz*dt
             theta_y = mx(i,l)*wz*dt
             theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0

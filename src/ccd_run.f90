@@ -1,9 +1,10 @@
 ! Brief: The main run engine. Produces trajectory starting from an initial state provided by a checkpoint.
 ! Prerequisites: checkpoint, parameter file, trajectory to append to if --append flag is on.
-! Synopsis: ccd_run [--append | -a] [--force | -f] [-n | --no-status-dump]
+! Synopsis: ccd_run [--append | -a] [--force | -f] [-n | --no-status-dump] [--no-evolve-motility]
 ! --append : append to an existing trajectory thus extending a previous run
 ! --force : ignore lockfile left behind by a previous incomplete run
-! --no-status-dump : Doesn't show live progess. This makes the run faster. 
+! --no-status-dump : Doesn't show live progess. This makes the run faster.
+! --no-evolve-motility : Doesn't evolve the motility (unit) vectors with time
 
 program ccd_run
 	use shared

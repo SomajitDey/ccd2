@@ -1,24 +1,24 @@
 module parameters
     implicit none
     public
-    double precision, protected:: k=120.0d0      !  Single cell spring constant
-    double precision, protected:: p=25.0d0       !  Single cell internal hydrostatic pressure coefficient
+    double precision, protected:: k=240.0d0      !  Single cell spring constant
+    double precision, protected:: p=50.0d0       !  Single cell internal hydrostatic pressure coefficient
     double precision, protected:: l0=0.1d0       !  Single cell natural spring-length
     double precision, protected:: rc_adh=0.28d0  ! Adhesion interaction cut-off
     double precision, protected:: rc_rep=0.18d0  ! Repulsion interaction cut-off
-    double precision, protected:: k_adh=0.001d0   !  Adhesion interaction strength
-    double precision, protected:: k_rep=1000.0d0 !  Adhesion interaction strength
+    double precision, protected:: k_adh=0.002d0   !  Adhesion interaction strength
+    double precision, protected:: k_rep=2000.0d0 !  Adhesion interaction strength
     double precision, parameter:: mean=0.0d0     !  Mean of the gaussian white noise
     double precision, protected:: var=0.05d0      !  Variance of the gaussian white noise
     double precision, protected:: Vo=0.05d0       !  Self propulsion of the beads
-    double precision, protected:: c = 0.5d0         ! c is coeff. of viscous damping      
+    double precision, parameter:: c = 1.0d0         ! c is coeff. of viscous damping      
     double precision, protected:: dt=0.001d0   ! Integration timestep
     integer, protected:: tau_align=10 ! Tau for Vicsek alignment in multiples of dt
     integer, protected:: nsamples=2  !! No. of Iterations in terms of traj_dump_int
     integer,protected:: n = 50    ! No. of beads
     integer,protected:: m = 256   ! No. of cell
 
-    namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, var, Vo, c, dt, tau_align, nsamples, n, m
+    namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, var, Vo, dt, tau_align, nsamples, n, m
 
     contains
     

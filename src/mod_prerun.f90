@@ -7,6 +7,7 @@ module prerun
         use state_vars
         use parameters
         use files
+        use integrator, only: evolve_motility_bool
         !$ use omp_lib, only: omp_get_max_threads
         
         integer, intent(out) :: ji,jf
@@ -75,5 +76,10 @@ module prerun
         !$ call log_this('Using '//int_to_char(int(omp_get_max_threads(), kind=kind(jf)))//' OpenMP threads')
         
         do_status_dump = .not. (cmd_line_flag('-n') .or. cmd_line_flag('--no-status-dump'))
+        
+        if(cmd_line_flag('--no-evolve-motility')) then
+            evolve_motility_bool=0.0d0
+            call log_this('Motility unit vectors are not being evolved')
+        endif
     end subroutine prerun_setup
 end module prerun

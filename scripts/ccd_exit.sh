@@ -4,3 +4,6 @@
 
 # Remove the hidden parameter file actually used by the sim engine
 rm -f .params.in
+
+# Show quote
+ccd_quote

@@ -55,18 +55,21 @@ seed_cell_centres: do l=2,m
 end do seed_cell_centres
 
 ! Construct circular cells from the seeded centres
+! Also initialize the motility unit vectors symmetrically (radially outward) such that the total for each cell is null
 do l=1,m
     do i=1,n        
         theta1 = (i-1)*2.0d0*pi/n
         x(i,l) = radius*dcos(theta1) + xcell(l)
         y(i,l) = radius*dsin(theta1) + ycell(l)
+        mx(i,l)= dcos(theta1)
+        my(i,l)= dsin(theta1)
      end do
 end do
 
 	return
 	end subroutine initial
 
-!! Subroutine for initializaion of noise-angle
+!! Subroutine for random initializaion of motility unit vectors
        subroutine initial_angle()
         double precision :: m_tmp,mx_tmp,my_tmp
         integer :: i,l

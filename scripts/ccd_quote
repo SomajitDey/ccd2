@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Brief: Quotes manager. Downloads random quotes, caches them and displays.
+# Quotes courtesy: https://zenquotes.io/
+
+[[ -z "${CCD_NO_QUOTES}" ]] || exit
+
+set -o pipefail
+
+export CCD_HOME="${HOME}"/.ccd
+mkdir -p "${CCD_HOME}"
+export quotes_cache="${CCD_HOME}/quotes"
+
+show_quote(){
+  # Shows one quote from the cache and removes it from the cache 
+  [[ -s "${quotes_cache}" ]] || return 1
+  echo -en "\nCCD Reminds You:  "
+  head -n1 "${quotes_cache}"
+  tail -n+2 "${quotes_cache}" | sponge "${quotes_cache}"
+} 1>&2 2>/dev/null
+
+cache_quotes(){
+  # Downloads and caches a bunch of quotes
+  timeout 3 curl -Lsf -o- https://zenquotes.io/api/quotes | jq -r '.[] | "\"" + .q + "\"" + "(" + .a + ")"' || \
+  echo '"I am out of quotes. Connect me to the internet so that I can topup."(poor CCD)'
+} >> "${quotes_cache}" 2>/dev/null
+
+show_quote || (cache_quotes && show_quote)

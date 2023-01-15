@@ -14,6 +14,7 @@ Work in progress. Check [TODO](#TODO) list below.
 - [gnuplot](https://command-not-found.com/gnuplot) for visualization
 - [xz](https://command-not-found.com/xz) for trajectory compression
 - [ffmpeg](https://command-not-found.com/ffmpeg) for movie generation
+- [jq](https://command-not-found.com/jq), [curl](https://command-not-found.com/curl) and [sponge](https://command-not-found.com/sponge) for quotes
 
 # Build
 - Install, if non-existent, the above [dependencies](#dependencies) first
@@ -101,6 +102,9 @@ ccd -p '<parameterA>=<valueA>' -p '<parameterB>=<valueB>' show_params
 - Retrieve the run results later, as necessary, by providing the corresponding metadata file to `ccd retrieve`.
 
 - Backup the archive (`${HOME}/.ccd`) from time to time, copying the new files only.
+
+### Quotes
+To turn off the GROMACS-like quotes at the end of each command, set the `CCD_NO_QUOTES` enviroment variable. Do so if you mostly use `ccd` when offline.
 
 # Note
 If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited; export OMP_STACKSIZE=500m`.

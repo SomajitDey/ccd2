@@ -12,14 +12,17 @@ contains
 	integer:: i,l
         double precision::l1,l2,dx1,dx2,dy1,dy2
         integer :: i_minus_1, i_plus_1
-   
+        double precision, dimension(size(x,dim=1)):: f_bead_x, f_bead_y
+        double precision :: f_bead_x_avg, f_bead_y_avg
           
 
          
      
-    !$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1)
+    !$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1, f_bead_x,f_bead_y,f_bead_x_avg,f_bead_y_avg)
   	do l=1,m
-
+        f_bead_x_avg = 0.d0
+        f_bead_y_avg = 0.d0
+        
         do i=1,n
 
                    i_minus_1 = modulo(i-2,n) + 1
@@ -39,14 +42,24 @@ contains
 
                    l2 = dsqrt(dx2*dx2 + dy2*dy2)
 
-                   fx(i,l)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
+                   f_bead_x(i)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
                                 - 0.5d0*p*l0*(dy1/l1 + dy2/l2) 
                      
 
-                   fy(i,l)=k*((l1-l0)*dy1/l1 - (l2-l0)*dy2/l2) &
+                   f_bead_x_avg = f_bead_x_avg + f_bead_x(i)
+
+                   f_bead_y(i)=k*((l1-l0)*dy1/l1 - (l2-l0)*dy2/l2) &
                                 + 0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
+                   f_bead_y_avg = f_bead_y_avg + f_bead_y(i)
 	  end do
+    
+      f_bead_x_avg = f_bead_x_avg/n
+      f_bead_y_avg = f_bead_y_avg/n
+      
+      fx(:,l) = f_bead_x(:) - f_bead_x_avg ! Because total intra force for any cell/ring must be zero
+      fy(:,l) = f_bead_y(:) - f_bead_y_avg ! e.g. a live amoeba in vacuum can have no net movement
+    
     end do
     !$omp end do nowait
 		 

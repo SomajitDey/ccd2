@@ -8,20 +8,20 @@ make FC=ifort rebuild
 # Initialization & hardlinking state.cpt to init.cpt
 ccd init; ln -f state.cpt init.cpt 
 
-# Run nsamples=200 from init.cpt (so that we get 4 checkpoints at 5000 steps interval)
-ccd -p 'nsamples=200' run -n
+# Run nsamples=100 from init.cpt (so that we get 2 checkpoints at 5000 steps interval)
+ccd -p 'nsamples=100' run -n
 ccd cpt_to_xy
 mv -f config.xy config.xy.unfragmented ; mv -f traj.bin traj.bin.unfragmented
 echo 'Finished control run uninterrupted'
 
-# Run nsamples=200 from init.cpt & crash it 
+# Run nsamples=100 from init.cpt & crash it 
 ln -f init.cpt state.cpt
-ccd -p 'nsamples=200' run -n 2> >(tee /dev/stderr | grep -m1 -i 'checkpoint') || echo 'Crashed the test run'
-# stderr/log is piped to grep. When grep sees 1st checkpoint in log, it exists. ccd run gets SIGPIPE and crashes.
+ccd -p 'nsamples=100' run -n 2> >(tee /dev/stderr | (grep -m1 -i 'checkpoint'; killall -r -w -KILL ccd_.*)) || echo 'Crashed the test run'
+# stderr/log is piped to grep. When grep sees 1st checkpoint in log, it exists, triggering a crash using killall or pkill.
 
 
 # Run again, with nothing (parameter-wise) changed except an extra '-f' option, to finish the incomplete part
-ccd -p 'nsamples=200' run -n -f
+ccd -p 'nsamples=100' run -n -f
 ccd cpt_to_xy
 mv -f config.xy config.xy.fragmented ; mv -f traj.bin traj.bin.fragmented
 echo 'Finished the crashed test run'
