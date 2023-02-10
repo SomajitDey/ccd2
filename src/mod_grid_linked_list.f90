@@ -29,13 +29,13 @@ module grid_linked_list
     ! Note: l0 isn't in max() because the intra-force computation where l0 is required doesnt use the neighborlist
     w=floor(box/rcut)
 	celli = dble(w/box) ! celli is the inverse of cell length
-	if((1.d0/celli).lt.rcut) error stop 'Grid size smaller than interaction cutoff'
+	if((1.d0/celli).lt.rcut) error stop 'Fatal: Grid size smaller than interaction cutoff'
     ncell=w*w
     gridmapsiz=4*ncell
     
     allocate(gridmap(gridmapsiz), bead_nl_head(ncell), bead_nl_body(m*n), stat=alloc_stat)
         
-     if(alloc_stat /= 0) error stop 'Problem while allocating grid_linked_list'
+     if(alloc_stat /= 0) error stop 'Fatal: Problem while allocating grid_linked_list'
     
 	!! Find Half The Nearest Neighbours Of Each Cell !!
 

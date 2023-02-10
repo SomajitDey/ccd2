@@ -132,4 +132,17 @@ end subroutine timestamp
         
         cmd_line_flag = index(cmd_line//delimiter, delimiter//flag//delimiter) /= 0
     end function cmd_line_flag
+    
+    subroutine print_help()
+        character(len=32) :: prog_name
+        call get_command_argument(0,prog_name)
+        call execute_command_line("helpdoc "//trim(prog_name))
+    end subroutine print_help
+
+    subroutine help_handler()
+        if(cmd_line_flag('-h') .or. cmd_line_flag('--help')) then
+            call print_help()
+            stop
+        endif    
+    end subroutine help_handler
 end module utilities

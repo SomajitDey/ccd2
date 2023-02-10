@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# Help:Begin
 # Brief: Archives (also compresses) and retrieves trajectory and final checkpoint
-# Usage: ccd_archive [-arc] <metadata file path>
-## -a: archive; -r : restore/retrieve; -c : clean. Default is archive.
+# Usage: ccd_archive [-arch] <metadata file path>
+# -a: archive; -r : restore/retrieve; -c : clean; -h : help. Default is archive.
 # Requirement: If archiving the files to be archived must be in present working directory
+# Help:End
 
 set -e # Exit on first failure
 
@@ -59,11 +61,12 @@ clean(){
 }
 
 mode=archive # The default
-while getopts :arc opt; do
+while getopts :arch opt; do
   case "${opt}" in
     a) mode=archive;;
     r) mode=retrieve;;
     c) mode=clean;;
+    h) helpdoc ccd_archive ; exit;;
     *) echo "Provided option is not supported" >&2; exit 1;;
   esac
 done

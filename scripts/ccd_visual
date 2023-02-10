@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
+# Help:Begin
 # Brief: Plots the given config using gnuplot.
 # Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [<path/file.xy>]
-## <type> = png | pdf | eps | svg
-## <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>
-## <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
-## Provide the optional '#' if you want solid fill
+# <type> = png | pdf | eps | svg
+# <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>
+# <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
+# Provide the optional '#' if you want solid fill
 # Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
-## such as while accessing wgnuplot.exe from within WSL
+# such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
+# Help:End
 
 # Setting gnuplot alias
 gplot="${GNUPLOT_PATH:-$(which gnuplot)}"
@@ -16,7 +18,7 @@ gplot="${GNUPLOT_PATH:-$(which gnuplot)}"
 tmp_plt_script="$(mktemp .tmp.XXXX.plt)"
 trap "rm -f ${tmp_plt_script}" EXIT
 
-while getopts :H:t: opt; do
+while getopts :H:t:h opt; do
   case "${opt}" in
     H) 
         parameter="${OPTARG,,}" # Convert to lowercase
@@ -48,6 +50,10 @@ while getopts :H:t: opt; do
                 exit 1
                 ;;
         esac
+        ;;
+    h)
+        helpdoc ccd_visual
+        exit
         ;;
     *) 
         echo "Provided option not supported" >&2

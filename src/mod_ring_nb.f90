@@ -16,7 +16,7 @@ contains
 
         allocate(ring_nb_yesno_packed((m-1)*(m-2)/2 + (m-1)), ring_nb_io(5*m), stat=alloc_stat)
         ! Assuming a max of 10 neighbors per ring. Avoiding double counting : 10*m/2 = 5*m elements for ring_nb_io
-        if(alloc_stat /= 0) error stop 'Problem while allocating ring_nb'
+        if(alloc_stat /= 0) error stop 'Fatal: Problem while allocating ring_nb'
     end subroutine allocate_ring_nb
     
     subroutine init_ring_nb()
@@ -32,7 +32,7 @@ contains
         integer, intent(in) :: l, q
         integer :: row, col
         
-        if(l==q) error stop 'Row number cannot be equal to column number in a strictly upper triangular matrix'
+        if(l==q) error stop 'Fatal: Row number cannot be equal to column number in a strictly upper triangular matrix'
         row = min(l,q)
         col = max(l,q)
         array_1d_index = (col-1)*(col-2)/2 + row
@@ -56,7 +56,7 @@ contains
         integer :: i
         
         if(size(ring_nb_io) < count(ring_nb_yesno_packed /= 0)) error stop &
-            'Too small output buffer for holding the compressed ring-ring neighborhood information'
+            'Fatal: Too small output buffer for holding the compressed ring-ring neighborhood information'
         
         ring_nb_io = pack( array=ring_nb_yesno_packed, mask=ring_nb_yesno_packed/=0, &
                         vector=[ (0, i=1,size(ring_nb_io)) ] )

@@ -15,6 +15,7 @@ Work in progress. Check [TODO](#TODO) list below.
 - [xz](https://command-not-found.com/xz) for trajectory compression
 - [ffmpeg](https://command-not-found.com/ffmpeg) for movie generation
 - [jq](https://command-not-found.com/jq), [curl](https://command-not-found.com/curl) and [sponge](https://command-not-found.com/sponge) for quotes
+- [helpdoc](https://github.com/somajitdey/helpdoc) for showing help/usage documentation
 
 # Build
 - Install, if non-existent, the above [dependencies](#dependencies) first

@@ -1,11 +1,17 @@
+! Help:Begin
 ! NOTE: This program requires the last checkpoint too.
+! Usage: ccd_traj_to_legacy
+! Help:End
 
 program ccd_traj_to_legacy
     use files
+    use utilities, only: help_handler
     implicit none
     integer :: pending_steps, current_step, rec_index, ncell, nbeads_per_cell, l, i, legacy_fd
     character(len=40) :: params_hash
     character(len=*), parameter :: legacy_fname = 'legacy.traj.txt'
+    
+    call help_handler()
     
     call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
     

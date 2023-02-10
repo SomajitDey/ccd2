@@ -37,13 +37,13 @@ module files
         integer :: reclen, io_stat, alloc_stat
 
         allocate(compressed_fp_for_io(size(x,1),size(x,2),10), stat=alloc_stat)
-        if(alloc_stat /= 0) error stop 'Problem in allocating compressed_fp_for_io'
+        if(alloc_stat /= 0) error stop 'Fatal: Problem in allocating compressed_fp_for_io'
         !TODO: All error stops should contain the subroutine/module name and variable name
         
         inquire(iolength=reclen) timepoint, compressed_fp_for_io, ring_nb_io
         open(newunit=traj_fd,file=traj_fname, access='direct', recl=reclen, form='unformatted', &
             status=old_or_replace, asynchronous='yes', action=read_or_write, iostat=io_stat)
-        if(io_stat /= 0) error stop 'Problem with opening '//traj_fname
+        if(io_stat /= 0) error stop 'Fatal: Problem with opening '//traj_fname
     end subroutine open_traj
     
     subroutine traj_read(recnum, timepoint)
@@ -55,7 +55,7 @@ module files
 
         read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
             timepoint, compressed_fp_for_io, ring_nb_io
-        if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
+        if(io_stat /= 0) error stop 'Fatal: Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
         call unpack_ring_nb()
 
         x = dble( compressed_fp_for_io(:,:,1) )
@@ -84,7 +84,7 @@ module files
         integer :: io_stat
         
         read(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) timepoint, compressed_fp_for_io
-        if(io_stat /= 0) error stop 'Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
+        if(io_stat /= 0) error stop 'Fatal: Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
 
         x = dble( compressed_fp_for_io(:,:,1) )
         y = dble( compressed_fp_for_io(:,:,2) )
@@ -110,7 +110,7 @@ module files
         call pack_ring_nb()
         write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
             timepoint, compressed_fp_for_io, ring_nb_io
-        if(io_stat /= 0) error stop 'Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
+        if(io_stat /= 0) error stop 'Fatal: Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write
 
     subroutine close_traj()
@@ -127,11 +127,11 @@ module files
 
                 open(newunit=cpt_fd,file=cpt_fname, access='sequential', form='unformatted', &
                     status='old', action='read', iostat=io_stat)
-                if(io_stat /= 0) error stop 'Problem with opening '//cpt_fname
+                if(io_stat /= 0) error stop 'Fatal: Problem with opening '//cpt_fname
                     read(cpt_fd) ncells, nbeads_per_cell, box
                     if(.not.(allocated(prng_seeds))) then
                         if(allocate_array_stat(ncells, nbeads_per_cell) /= 0) &
-                            error stop 'Array allocation in heap encountered some problem.'
+                            error stop 'Fatal: Array allocation in heap encountered some problem.'
                     end if
                     read(cpt_fd) prng_seeds ! Saves current state of the PRNG. To be `put=` in `random_seeds` call...
                     read(cpt_fd) x,y,mx,my ! Saves current state of the physical system

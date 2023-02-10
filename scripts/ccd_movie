@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
+# Help:Begin
 # Brief: Makes movie from the xy files in the given directory.
 # Usage: ccd_movie [-l <length_in_seconds>] [<directory>]
+# Help:End
 
 duration=15 # Deafult duration in seconds
-while getopts :l: opt; do
+while getopts :l:h opt; do
     case "${opt}" in
         l) duration="${OPTARG}"; (( duration > 0)) || exit 1;;
+        h) helpdoc ccd_movie ; exit;;
         *) echo "Provided option not supported" >&2; exit 1;;
     esac
 done

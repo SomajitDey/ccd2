@@ -81,6 +81,10 @@ SUBCMDS := $(filter-out %_ %.sh, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $
 BASHCOMP := $(PACKAGE)_completion.sh
 BASHCOMP_TEMPLATE := $(SCRIPT_DIR)/completion.template
 
+# Helpdoc related (https://github.com/somajitdey/helpdoc)
+HELPDOC_CMDS := $(addprefix $(PACKAGE)_, $(SUBCMDS))
+HELPDOC_SRCS := $(wildcard $(SRC_DIR)/$(PACKAGE)_*.f90) $(filter-out %_ %.sh, $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*))
+
 # Dependency file to be generated using `fortdepend`
 DEPFILE := .dependencies
 
@@ -160,8 +164,12 @@ install:
 	sudo install -t $(INSTALL_PATH_INTERNALS) $(EXECS) $(SCRIPTS)
 	sudo install -T $(DRIVER) $(INSTALL_PATH_MAIN)/$(PACKAGE)
 	sudo install -t $(BASHCOMP_INSTALL_PATH) $(BASHCOMP)
+	echo $(HELPDOC_SRCS) | xargs -n1 -r sudo helpdoc -e || true
+	@echo -e \\n$(GREEN)"make install: Success"$(NOCOLOR)
 
 uninstall:
 	sudo rm $(INSTALL_PATH_MAIN)/$(PACKAGE)
 	sudo rm -rf $(INSTALL_PATH_INTERNALS)
 	sudo rm $(BASHCOMP_INSTALL_PATH)/$(BASHCOMP)
+	echo $(HELPDOC_CMDS) | xargs -n1 -r sudo helpdoc -d || true
+	@echo -e \\n$(GREEN)"make uninstall: Success"$(NOCOLOR)
