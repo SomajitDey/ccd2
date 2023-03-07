@@ -18,7 +18,12 @@ module parameters
     integer,protected:: n = 50    ! No. of beads
     integer,protected:: m = 256   ! No. of cell
 
+    integer :: traj_dump_int=100 ! Trajectory file dump interval
+    integer :: status_dump_int=100 ! Status file dump interval
+    integer :: cpt_dump_int=5000 ! Checkpoint file dump interval
+
     namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, var, Vo, dt, tau_align, nsamples, n, m
+    namelist /params/ traj_dump_int, status_dump_int, cpt_dump_int
 
     private:: check_params
     
@@ -99,7 +104,7 @@ module parameters
         write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'l0'        
         if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: l0 > rc_adh'
         
-        if(rc_rep > rc_adh) write(err_fd,'(a)') '**Warning: rc_rep > rc_adh'
+        if(rc_rep > rc_adh) error stop 'Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
         
         write(err_fd,'(/,a)') 'SPRING CONSTANT AND PRESSURE SCALES:'
 

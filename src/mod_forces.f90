@@ -21,22 +21,23 @@ contains
   	do l=1,m
         do i=1,n
 
-                   i_minus_1 = modulo(i-2,n) + 1
-                   i_plus_1 = mod(i,n) + 1
+                   i_minus_1 = circular_next(i,-1,n)
+                   i_plus_1 = circular_next(i,+1,n)
                    
                    dx1 = x(i_minus_1,l)-x(i,l)
                    dy1 = y(i_minus_1,l)-y(i,l)
                    dx2 = x(i,l)-x(i_plus_1,l)
                    dy2 = y(i,l)-y(i_plus_1,l)
 
-                   dx1 = dx1 - box*nint(dx1/box)
-                   dx2 = dx2 - box*nint(dx2/box)
-                   dy1 = dy1 - box*nint(dy1/box)             
-                   dy2 = dy2 - box*nint(dy2/box)
+                   ! TODO: Is the following necessary?
+                   ! dx1 = dx1 - box*nint(dx1/box)
+                   ! dx2 = dx2 - box*nint(dx2/box)
+                   ! dy1 = dy1 - box*nint(dy1/box)             
+                   ! dy2 = dy2 - box*nint(dy2/box)
 
-                   l1 = dsqrt(dx1*dx1 + dy1*dy1)
+                   l1 = hypot(dx1,dy1)
 
-                   l2 = dsqrt(dx2*dx2 + dy2*dy2)
+                   l2 = hypot(dx2,dy2)
 
                    fx(i,l)=k*((l1-l0)*dx1/l1 - (l2-l0)*dx2/l2) &
                                 - 0.5d0*p*(dy1 + dy2)
@@ -78,7 +79,7 @@ contains
         !! Loop Over All Cells !!
 
 	!$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,factor, icell,jcell,nabor, bead_index) &
-    !$omp private(other_bead_index, store_ring_nb) &
+    !$omp private(other_bead_index) &
     !$omp reduction(+: f_rpx, f_rpy) &
     !$omp reduction(+: f_adx, f_ady)
     grids: do icell=1,ncell
@@ -110,7 +111,7 @@ contains
 							dy = y(j,q)-y(i,l)
 							dx = dx - box*nint(dx/box)
 							dy = dy - box*nint(dy/box)					        
-							r = dsqrt(dx*dx + dy*dy)
+							r = hypot(dx,dy)
 							
 
                       					within_cutoff: if(r.lt.rc_adh) then

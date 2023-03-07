@@ -145,4 +145,40 @@ end subroutine timestamp
             stop
         endif    
     end subroutine help_handler
+
+    ! Returns next/previous element index in a circular array. Default start_index=1
+    pure integer function circular_next(curr_index, stride, period, start_index)
+        integer, intent(in) :: curr_index, stride, period
+        integer, intent(in), optional :: start_index !Default: 1
+        integer :: index_offset ! Offset w.r.t circular array starting with index 0
+
+        if(present(start_index)) then
+            index_offset = start_index
+        else
+            index_offset=1
+        endif
+
+        circular_next=modulo(curr_index-index_offset+stride, period) + index_offset
+    end function circular_next
+
+    ! Returns eigenvalues and unit eigenvectors of a 2x2 matrix following the trace method
+    ! Ref: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#2.C3.972_matrices
+    pure subroutine eigen_2x2_mat(matrix, eigenval1, eigenval2, eigenvec1, eigenvec2)
+        double precision, dimension(2,2), intent(in) :: matrix
+        double precision, intent(out) :: eigenval1, eigenval2
+        double precision, dimension(2), intent(out) :: eigenvec1, eigenvec2
+        double precision :: trace, det, gap
+        
+        trace = matrix(1,1) + matrix(2,2)
+        det = matrix(1,1)*matrix(2,2) - matrix(1,2)*matrix(2,1)
+        gap = dsqrt(trace*trace - 4*det)
+        eigenval1 = (trace + gap)/2
+        eigenval2 = (trace - gap)/2
+        
+        eigenvec1 = [matrix(1,1) - eigenval2, matrix(2,1)]
+        eigenvec2 = [matrix(1,1) - eigenval1, matrix(2,1)]
+        
+        eigenvec1 = eigenvec1/norm2(eigenvec1) 
+        eigenvec2 = eigenvec2/norm2(eigenvec2) 
+    end subroutine eigen_2x2_mat
 end module utilities

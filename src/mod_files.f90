@@ -1,5 +1,6 @@
 module files
     use iso_fortran_env, only: err_fd => error_unit
+    use parameters, only: traj_dump_int, status_dump_int, cpt_dump_int
     use state_vars
     use utilities
     implicit none
@@ -16,11 +17,6 @@ module files
     character(len=40), protected :: init_cpt_hash, final_cpt_hash, traj_hash    
     namelist /checksums/ init_cpt_hash, final_cpt_hash, traj_hash
     
-    !TODO: traj_dump_int should be user input parameter. Move it to mod_parameters
-    integer, parameter:: traj_dump_int=100 ! Trajectory file dump interval
-    integer, parameter:: status_dump_int=100 ! Status file dump interval
-    integer, parameter:: cpt_dump_int=5000 ! Checkpoint file dump interval
-
     logical :: do_status_dump = .true. ! This flag may be set and unset using signals
     
     real, dimension(:,:,:), allocatable, private :: compressed_fp_for_io
@@ -69,7 +65,7 @@ module files
         f_adx = dble( compressed_fp_for_io(:,:,9) )
         f_ady = dble( compressed_fp_for_io(:,:,10) )
         
-        m_norm = dsqrt(mx*mx + my*my)
+        m_norm = hypot(mx,my)
         mx = mx / m_norm
         my = my / m_norm
     end subroutine traj_read
@@ -128,6 +124,7 @@ module files
                 open(newunit=cpt_fd,file=cpt_fname, access='sequential', form='unformatted', &
                     status='old', action='read', iostat=io_stat)
                 if(io_stat /= 0) error stop 'Fatal: Problem with opening '//cpt_fname
+                    read(cpt_fd) traj_dump_int, status_dump_int, cpt_dump_int
                     read(cpt_fd) ncells, nbeads_per_cell, box
                     if(.not.(allocated(prng_seeds))) then
                         if(allocate_array_stat(ncells, nbeads_per_cell) /= 0) &
@@ -159,7 +156,8 @@ module files
                 ! Dumping to .cpt.tmp instead of *.cpt for now
                 open(newunit=cpt_fd,file='.cpt.tmp', access='sequential', form='unformatted', &
                     status='replace', action='write')
-                    write(cpt_fd) m,n,box
+                    write(cpt_fd) traj_dump_int, status_dump_int, cpt_dump_int
+                    write(cpt_fd) m,n,box,box !TODO: Future proof against box_x,box_y for rectangular sim box
                     write(cpt_fd) prng_seeds ! Saves current state of the PRNG. To be `put=` in `random_seeds` call...
                     write(cpt_fd) x,y,mx,my ! Saves current state of the physical system
                     write(cpt_fd) timepoint ! Saves current time instant for the timeseries

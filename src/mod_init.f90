@@ -81,7 +81,7 @@ end do
 
                 mx_tmp = 2.0d0*rands(1) - 1.0d0
                 my_tmp = 2.0d0*rands(2) - 1.0d0
-                m_tmp = dsqrt(mx_tmp*mx_tmp + my_tmp*my_tmp)
+                m_tmp = hypot(mx_tmp,my_tmp)
                 mx(i,l)=mx_tmp/m_tmp
                 my(i,l)=my_tmp/m_tmp
             end do

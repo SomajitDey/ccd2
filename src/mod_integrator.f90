@@ -19,10 +19,10 @@ contains
        do l=1,m
         tmp = (l-1)*n
         do i=1,n
-           vx = (fx(i,l) + f_adx(i,l) + f_rpx(i,l))*dt/c + Vo*mx(i,l)*dt
-           vy = (fy(i,l) + f_ady(i,l) + f_rpy(i,l))*dt/c + Vo*my(i,l)*dt
-           x(i,l) = x(i,l) + vx
-           y(i,l) = y(i,l) + vy
+           vx = (fx(i,l) + f_adx(i,l) + f_rpx(i,l))/c + Vo*mx(i,l)
+           vy = (fy(i,l) + f_ady(i,l) + f_rpy(i,l))/c + Vo*my(i,l)
+           x(i,l) = x(i,l) + vx*dt
+           y(i,l) = y(i,l) + vy*dt
             
       
             wz = ((mx(i,l)*vy - my(i,l)*vx)/(tau_align*dt) + noise(tmp+i))*evolve_motility_bool
