@@ -112,10 +112,10 @@ module parameters
         write(err_fd,'(a,1x,f0.3,1x,a)') 'k_rep =', factor, 'k*k_adh*p'
         if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: k_rep < k*k_adh*p'
         
-        factor = p/(2*k*dtan(pi/n)) ! Derived from Free Body Diagram of regular n-gon with max spring length 2*l0
+        factor = p/(2*k*dtan(pi/n)) ! Derived from Free Body Diagram of regular n-gon. factor equals dl/l
         ! Also this measure of p agrees with P = dEnergy/dArea for a regular n-gon that is stretched uniformly
         write(err_fd,'(a,1x,f0.3,1x,a)') 'p =', factor, '2k*tan(pi/n)'
-        if(factor > 1.0d0) error stop 'Fatal:  p > 2k*tan(pi/n)'
+        if(factor > 1.0d0) write(err_fd,'(a)') '**Warning: p > 2k*tan(pi/n)'
 
         radius_circular_cell = 0.5d0*l0/dsin(pi/n) ! circumcirle of a regular n-gon with side l0
         k_adh_estimate = 0.1d0*k*(radius_circular_cell**2)/(n*(rc_adh-rc_rep))**2
