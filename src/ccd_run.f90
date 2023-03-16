@@ -44,7 +44,8 @@ program ccd_run
         ! This is important as gfortran provides different prng sequences (different seeds) for different threads.
         ! Calling rands from different prngs may upset the distribution/correlation we are after
         call random_seed(get = prng_seeds)
-             CALL gasdev(noise,mean,var) ! Updates prng_seeds as side-effect        
+             CALL gasdev(noise,mean,var/dt) ! Updates prng_seeds as side-effect
+             ! Note the use of 1/dt in the desired variance. This is because white noise = stdnormal/sqrt(dt)
     !$omp end master
 
     !$omp single

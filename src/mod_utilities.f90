@@ -8,10 +8,12 @@ contains
  Subroutine gasdev(g,mean,variance) 
       DOUBLE PRECISION,INTENT(IN)::variance,mean
       DOUBLE PRECISION,INTENT(OUT)::g(:)
-      DOUBLE PRECISION:: fac,rsq,v1,v2
+      DOUBLE PRECISION:: stddev,fac,rsq,v1,v2
       DOUBLE PRECISION:: rands(2)
       INTEGER:: i, size_g
       double precision, parameter :: small=epsilon(0.0d0)
+      
+      stddev=DSQRT(variance)
       
       size_g=size(g)
      
@@ -23,7 +25,7 @@ contains
         rsq=v1**2+v2**2
         if((rsq<1.0d0).AND.(rsq>small))EXIT
         ENDDO
-        fac=variance*DSQRT(-2.0d0*dlog(rsq)/(rsq))
+        fac=stddev*DSQRT(-2.0d0*dlog(rsq)/(rsq))
         g(i)=v1*fac+mean
         if(i/=size_g) g(i+1)=v2*fac+mean 
      END DO harvest_g_array
