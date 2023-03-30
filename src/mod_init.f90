@@ -8,6 +8,7 @@ contains
 subroutine initial
 double precision:: radius   ! Initial/seed cell radius
 double precision:: acell,bcell,dr,mindist,dx,dy, theta1
+double precision :: m_tmp,mx_tmp,my_tmp, mx_cell,my_cell
 integer:: l,kcell,i,fail_count
 real:: rands(2)
 double precision, dimension(size(x,dim=2)) :: xcell, ycell ! centre coordinates of any circular cell/ring
@@ -55,40 +56,24 @@ seed_cell_centres: do l=2,m
 end do seed_cell_centres
 
 ! Construct circular cells from the seeded centres
-! Also initialize the motility unit vectors symmetrically (radially outward) such that the total for each cell is null
+! Also initialize the motility unit vectors randomly for each cell
 do l=1,m
+    CALL RANDOM_NUMBER(rands)
+    mx_tmp = 2.0d0*rands(1) - 1.0d0
+    my_tmp = 2.0d0*rands(2) - 1.0d0
+    m_tmp = hypot(mx_tmp,my_tmp)
+    mx_cell = mx_tmp/m_tmp
+    my_cell = my_tmp/m_tmp
     do i=1,n        
         theta1 = (i-1)*2.0d0*pi/n
         x(i,l) = radius*dcos(theta1) + xcell(l)
         y(i,l) = radius*dsin(theta1) + ycell(l)
-        mx(i,l)= dcos(theta1)
-        my(i,l)= dsin(theta1)
+        mx(i,l)= mx_cell
+        my(i,l)= my_cell
      end do
 end do
 
 	return
 	end subroutine initial
-
-!! Subroutine for random initializaion of motility unit vectors
-       subroutine initial_angle()
-        double precision :: m_tmp,mx_tmp,my_tmp
-        integer :: i,l
-        DOUBLE PRECISION:: rands(2)
-        
-        do l=1,m
-            do i=1,n
-               CALL RANDOM_NUMBER(rands)
-
-                mx_tmp = 2.0d0*rands(1) - 1.0d0
-                my_tmp = 2.0d0*rands(2) - 1.0d0
-                m_tmp = hypot(mx_tmp,my_tmp)
-                mx(i,l)=mx_tmp/m_tmp
-                my(i,l)=my_tmp/m_tmp
-            end do
-        end do
-
-        return
-        end subroutine initial_angle
-
 
 end module init

@@ -18,7 +18,7 @@ module prerun
         logical :: append_flag_present, finish_prev_run
 
         if(.not. acquire_lock(force = (cmd_line_flag('-f') .or. cmd_line_flag('--force')))) error stop &
-            'Fatal: Uh-oh...seems like another run is going on in the current working directory. I better stop than mess up'
+            'Fatal: Seems like another run is going on in the current working directory. Exiting...'
         
         call log_this('Reading initial state from '//cpt_fname)
         call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)

@@ -10,33 +10,41 @@ contains
 
        use shared
        
-       integer:: i,l, tmp
-       double precision:: vx,vy,wz
+       integer:: i,l
+       double precision:: vx,vy,vx_sum,vy_sum,vnorm,wz,mx_cell,my_cell
        double precision :: theta_x, theta_y, theta_sq_by_4 ! as in Dey arxiv: 1811.06450
        double precision :: factor1, factor2
 
-        !$omp do private(i,l, vx,vy,wz, theta_x, theta_y, theta_sq_by_4, tmp)
+       !$omp do private(i,l,vx,vy,vx_sum,vy_sum,vnorm,wz,mx_cell,my_cell,theta_x,theta_y,theta_sq_by_4,factor1,factor2)
        do l=1,m
-        tmp = (l-1)*n
+        vx_sum = 0.d0
+        vy_sum = 0.d0
+        mx_cell = mx(1,l)
+        my_cell = my(1,l)
+
         do i=1,n
            vx = (fx(i,l) + f_adx(i,l) + f_rpx(i,l))/c + Vo*mx(i,l)
            vy = (fy(i,l) + f_ady(i,l) + f_rpy(i,l))/c + Vo*my(i,l)
            x(i,l) = x(i,l) + vx*dt
            y(i,l) = y(i,l) + vy*dt
+           vx_sum = vx + vx_sum
+           vy_sum = vy + vy_sum
+        end do            
+        vnorm = hypot(vx_sum,vy_sum)
+        wz = ((mx_cell*vy_sum - my_cell*vx_sum)/(vnorm*tau_align*dt) + noise(i))*evolve_motility_bool
+        theta_x = -my_cell*wz*dt
+        theta_y = mx_cell*wz*dt
+        theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
             
-      
-            wz = ((mx(i,l)*vy - my(i,l)*vx)/(tau_align*dt) + noise(tmp+i))*evolve_motility_bool
-            theta_x = -my(i,l)*wz*dt
-            theta_y = mx(i,l)*wz*dt
-            theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)/4.0d0
+        ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
+        factor1 = 1.0d0 - theta_sq_by_4
+        factor2 = 1.0d0 + theta_sq_by_4
             
-            ! Norm preserving rotation of m with ang vel w -> ang dispacement wz*dt
-            factor1 = 1.0d0 - theta_sq_by_4
-            factor2 = 1.0d0 + theta_sq_by_4
-            
-            mx(i,l) = (factor1*mx(i,l) + theta_x)/factor2
-            my(i,l) = (factor1*my(i,l) + theta_y)/factor2
-        end do
+        mx_cell = (factor1*mx_cell + theta_x)/factor2
+        my_cell = (factor1*my_cell + theta_y)/factor2
+
+        mx(:,l) = mx_cell
+        my(:,l) = my_cell     
       end do
       !$omp end do
 
