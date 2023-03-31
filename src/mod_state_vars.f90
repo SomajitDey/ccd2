@@ -28,7 +28,7 @@ module state_vars
             fx(1:beadnum, 1:cellnum), fy(1:beadnum, 1:cellnum), &
             f_rpx(1:beadnum, 1:cellnum), f_rpy(1:beadnum, 1:cellnum), &
             f_adx(1:beadnum, 1:cellnum), f_ady(1:beadnum, 1:cellnum), &
-            noise(1:cellnum*beadnum), &
+            noise(1:cellnum), &
             prng_seeds(seeds_size), &
             stat=allocate_array_stat )
         
