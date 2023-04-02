@@ -8,7 +8,7 @@ Work in progress. Check [TODO](#TODO) list below.
 
 # Dependencies
 - [gfortran](https://command-not-found.com/gfortran) or [ifort](https://gist.github.com/SomajitDey/aeb6eb4c8083185e06800e1ece4be1bd)(recommended). Note: ifort is free now, doesn't require a license anymore.
-- [fortdepend](https://github.com/ZedThree/fort_depend.py) or its [fork](https://github.com/PhyBi/fortdepend) for generating dependencies during build
+- [fortdepend](https://github.com/ZedThree/fort_depend.py) or its [fork](https://github.com/PhyBi/fortdepend) for generating dependencies during build. For Ubuntu 18.04, you may also have to install *importlib-metadata* with: `pip3 install importlib.metadata`
 - [bash](https://command-not-found.com/bash) because we suck at writing fully POSIX-compliant shell scripts
 - [pv](https://command-not-found.com/pv) for showing real-time progress bar
 - [gnuplot](https://command-not-found.com/gnuplot) for visualization
@@ -141,12 +141,12 @@ This software is built from a monolithic legacy code. Hence much had and still w
 - [x] replace the array-bound-based implementation of circular boundary conditions of beads within cells for better maintainability 
 - [x] building the cell-cell neighborlist and dumping it in trajectory file in the most compressed way for later analysis such as hexatic order parameter
 - [x] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
-- [ ] consistency check for parameters while reading them in (src/mod_parameters.f90)
+- [x] consistency check for parameters while reading them in (src/mod_parameters.f90)
 - [ ] linting
 - [ ] performance oriented profiling and polishing
 - [x] enhancing the driver code (`ccd`) as well as the bash-completion script
 - [x] compression and archiving of run results (trajectory etc.). Also provide retrieval and garbage cleaning tools.
-- [ ] include -h\|--help for each subcommand using `helpdoc` tool. Detailed [docs](docs/)
-- [ ] include analysis tools (legacy or new)
+- [x] include -h\|--help for each subcommand using `helpdoc` tool. Detailed [docs](docs/)
+- [x] include analysis tools (legacy or new)
 - [x] include movie making tools : ccd traj_to_xy and ccd movie (gif and mp4)
 - [ ] install signal handlers for dumping progress status
