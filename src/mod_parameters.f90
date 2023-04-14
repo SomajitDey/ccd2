@@ -56,13 +56,16 @@ module parameters
         
         if(.not. present(nocheck) .or. .not. nocheck) call check_params() !i.e. checking is the default behavior
         return
-100  error stop 'Fatal: Problem with parameter input file : '//fname
+100     error stop 'Fatal: Problem with parameter input file : '//fname
     end subroutine assign_params
     
     subroutine check_params()
         use iso_fortran_env, only: err_fd => error_unit
         double precision, parameter::  pi = dacos(-1.0d0)
         double precision :: factor, radius_circular_cell, k_adh_estimate
+        logical :: fatal
+        
+        fatal = .false.
         
         write(err_fd,'(a,/,29("="))') 'PARAMETER CONSISTENCY REPORT:'
         
@@ -72,19 +75,31 @@ module parameters
 
         factor = (c/k)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k =', factor, 'dt'
-        if(factor < 10.0d0) error stop 'Fatal:  c/k < 10 dt. Upsets assumption of slowly varying force'
+        if(factor < 10.0d0) then
+            write(err_fd,'(a)') 'Fatal:  c/k < 10 dt. Upsets assumption of slowly varying force'
+            fatal = .true.
+        endif
 
         factor = (c/k_rep)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k_rep =', factor, 'dt'
-        if(factor < 10.0d0) error stop 'Fatal:  c/k_rep < 10 dt. Upsets assumption of slowly varying force'
+        if(factor < 10.0d0) then
+            write(err_fd,'(a)') 'Fatal:  c/k_rep < 10 dt. Upsets assumption of slowly varying force'
+            fatal = .true.
+        endif
 
         factor = (c/k_adh)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k_adh =', factor, 'dt'
-        if(factor < 10.0d0) error stop 'Fatal:  c/k_adh < 10 dt. Upsets assumption of slowly varying force'        
+        if(factor < 10.0d0) then
+            write(err_fd,'(a)') 'Fatal:  c/k_adh < 10 dt. Upsets assumption of slowly varying force'
+            fatal = .true.
+        endif
 
         factor = (c/p)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/p =', factor, 'dt'        
-        if(factor < 10.0d0) error stop 'Fatal:  c/p < 10 dt. Upsets assumption of slowly varying force'
+        if(factor < 10.0d0) then
+            write(err_fd,'(a)') 'Fatal:  c/p < 10 dt. Upsets assumption of slowly varying force'
+            fatal = .true.
+        endif
 
         write(err_fd,'(a,1x,i0,1x,a)') 'tau_align =', tau_align, 'dt'
         
@@ -98,15 +113,24 @@ module parameters
             
             factor = (l0/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'l0 =', factor, 'Vo*dt'
-            if(factor < 10.0d0) error stop 'Fatal:  l0 < 10 Vo*dt. Upsets assumption of slowly varying force' 
+            if(factor < 10.0d0) then
+                write(err_fd,'(a)') 'Fatal:  l0 < 10 Vo*dt. Upsets assumption of slowly varying force'
+                fatal = .true.
+            endif
 
             factor = (rc_rep/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_rep =', factor, 'Vo*dt'
-            if(factor < 10.0d0) error stop 'Fatal:  rc_rep < 10 Vo*dt. Upsets assumption of slowly varying force'
+            if(factor < 10.0d0) then
+                write(err_fd,'(a)') 'Fatal:  rc_rep < 10 Vo*dt. Upsets assumption of slowly varying force'
+                fatal = .true.
+            endif
         
             factor = (rc_adh/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'Vo*dt'
-            if(factor < 10.0d0) error stop 'Fatal:  rc_adh < 10 Vo*dt. Upsets assumption of slowly varying force'
+            if(factor < 10.0d0) then
+                write(err_fd,'(a)') 'Fatal:  rc_adh < 10 Vo*dt. Upsets assumption of slowly varying force'
+                fatal = .true.
+            endif
 
         end if
         
@@ -118,7 +142,10 @@ module parameters
         write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'l0'        
         if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: l0 > rc_adh'
         
-        if(rc_rep > rc_adh) error stop 'Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
+        if(rc_rep > rc_adh) then
+            write(err_fd,'(a)') 'Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
+            fatal = .true.
+        endif
         
         write(err_fd,'(/,a)') 'SPRING CONSTANT AND PRESSURE SCALES:'
 
@@ -141,5 +168,7 @@ module parameters
         
         write(err_fd,'(/,a,/,29("="),/)') 'END OF CONSISTENCY REPORT:' ! Demarcates End of Report
 
+        if (fatal) error stop 'Encountered Fatal conditions above. Exiting...'
+    
     end subroutine check_params
 end module parameters
