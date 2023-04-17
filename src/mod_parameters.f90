@@ -76,28 +76,28 @@ module parameters
         factor = (c/k)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k =', factor, 'dt'
         if(factor < 10.0d0) then
-            write(err_fd,'(a)') 'Fatal:  c/k < 10 dt. Upsets assumption of slowly varying force'
+            write(err_fd,'(a)') '**Fatal:  c/k < 10 dt. Upsets assumption of slowly varying force'
             fatal = .true.
         endif
 
         factor = (c/k_rep)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k_rep =', factor, 'dt'
         if(factor < 10.0d0) then
-            write(err_fd,'(a)') 'Fatal:  c/k_rep < 10 dt. Upsets assumption of slowly varying force'
+            write(err_fd,'(a)') '**Fatal:  c/k_rep < 10 dt. Upsets assumption of slowly varying force'
             fatal = .true.
         endif
 
         factor = (c/k_adh)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/k_adh =', factor, 'dt'
         if(factor < 10.0d0) then
-            write(err_fd,'(a)') 'Fatal:  c/k_adh < 10 dt. Upsets assumption of slowly varying force'
+            write(err_fd,'(a)') '**Fatal:  c/k_adh < 10 dt. Upsets assumption of slowly varying force'
             fatal = .true.
         endif
 
         factor = (c/p)/dt
         write(err_fd,'(a,1x,f0.3,1x,a)') 'c/p =', factor, 'dt'        
         if(factor < 10.0d0) then
-            write(err_fd,'(a)') 'Fatal:  c/p < 10 dt. Upsets assumption of slowly varying force'
+            write(err_fd,'(a)') '**Fatal:  c/p < 10 dt. Upsets assumption of slowly varying force'
             fatal = .true.
         endif
 
@@ -114,21 +114,21 @@ module parameters
             factor = (l0/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'l0 =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
-                write(err_fd,'(a)') 'Fatal:  l0 < 10 Vo*dt. Upsets assumption of slowly varying force'
+                write(err_fd,'(a)') '**Fatal:  l0 < 10 Vo*dt. Upsets assumption of slowly varying force'
                 fatal = .true.
             endif
 
             factor = (rc_rep/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_rep =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
-                write(err_fd,'(a)') 'Fatal:  rc_rep < 10 Vo*dt. Upsets assumption of slowly varying force'
+                write(err_fd,'(a)') '**Fatal:  rc_rep < 10 Vo*dt. Upsets assumption of slowly varying force'
                 fatal = .true.
             endif
         
             factor = (rc_adh/Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
-                write(err_fd,'(a)') 'Fatal:  rc_adh < 10 Vo*dt. Upsets assumption of slowly varying force'
+                write(err_fd,'(a)') '**Fatal:  rc_adh < 10 Vo*dt. Upsets assumption of slowly varying force'
                 fatal = .true.
             endif
 
@@ -143,7 +143,7 @@ module parameters
         if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: l0 > rc_adh'
         
         if(rc_rep > rc_adh) then
-            write(err_fd,'(a)') 'Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
+            write(err_fd,'(a)') '**Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
             fatal = .true.
         endif
         
