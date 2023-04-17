@@ -111,21 +111,21 @@ module parameters
         
         if(Vo > epsilon(0.0d0)) then !Only if motility is not insignificant
             
-            factor = (l0/Vo*dt)
+            factor = l0/(Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'l0 =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
                 write(err_fd,'(a)') '**Fatal:  l0 < 10 Vo*dt. Upsets assumption of slowly varying force'
                 fatal = .true.
             endif
 
-            factor = (rc_rep/Vo*dt)
+            factor = rc_rep/(Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_rep =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
                 write(err_fd,'(a)') '**Fatal:  rc_rep < 10 Vo*dt. Upsets assumption of slowly varying force'
                 fatal = .true.
             endif
         
-            factor = (rc_adh/Vo*dt)
+            factor = rc_adh/(Vo*dt)
             write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'Vo*dt'
             if(factor < 10.0d0) then
                 write(err_fd,'(a)') '**Fatal:  rc_adh < 10 Vo*dt. Upsets assumption of slowly varying force'
