@@ -31,7 +31,7 @@ contains
            vy_sum = vy + vy_sum
         end do            
         vnorm = hypot(vx_sum,vy_sum)
-        wz = (align_strength*(mx_cell*vy_sum - my_cell*vx_sum)/vnorm + noise_strength*noise(i))*evolve_motility_bool
+        wz = (align_strength*(mx_cell*vy_sum - my_cell*vx_sum)/vnorm + noise_strength*noise(l))*evolve_motility_bool
         theta_x = -my_cell*wz*dt
         theta_y = mx_cell*wz*dt
         theta_sq_by_4 = (theta_x*theta_x + theta_y*theta_y)*0.25d0
