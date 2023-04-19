@@ -19,18 +19,24 @@ contains
        do l=1,m
         vx_sum = 0.d0
         vy_sum = 0.d0
-        mx_cell = mx(1,l)
-        my_cell = my(1,l)
 
         do i=1,n
            vx = (fx(i,l) + f_adx(i,l) + f_rpx(i,l))/c + Vo*mx(i,l)
            vy = (fy(i,l) + f_ady(i,l) + f_rpy(i,l))/c + Vo*my(i,l)
-           x(i,l) = x(i,l) + vx*dt
-           y(i,l) = y(i,l) + vy*dt
            vx_sum = vx + vx_sum
            vy_sum = vy + vy_sum
+           x(i,l) = x(i,l) + vx*dt
+           y(i,l) = y(i,l) + vy*dt
         end do            
         vnorm = hypot(vx_sum,vy_sum)
+        if (vnorm < epsilon(0.0d0)) then
+            ! Null vector : protection against division by vnorm=0
+            vx_sum = 0.d0
+            vy_sum = 0.d0
+            vnorm = 1.d0
+        endif
+        mx_cell = mx(1,l)
+        my_cell = my(1,l)
         wz = (align_strength*(mx_cell*vy_sum - my_cell*vx_sum)/vnorm + noise_strength*noise(l))*evolve_motility_bool
         theta_x = -my_cell*wz*dt
         theta_y = mx_cell*wz*dt

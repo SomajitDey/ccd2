@@ -28,7 +28,7 @@ ifeq ($(FC), gfortran)
   endif
 else ifeq ($(FC), ifort)
   ifdef DEBUG
-    FF += -march=native -static -O0 -auto -fp-stack-check -g -traceback -warn -check all
+    FF += -march=native -static -O0 -auto -fp-stack-check -fpe0  -g -traceback -warn -check all
   else
     FF += -march=native -O3 -fast -auto -w
   endif
