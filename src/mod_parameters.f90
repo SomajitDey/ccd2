@@ -5,6 +5,7 @@ module parameters
     !! USER PARAMETERS and THEIR DEFAULT VALUES
 
     !!!! MODEL PARAMETERS
+    double precision, protected:: c=1.0d0         ! c is coeff. of viscous damping      
     double precision, protected:: k=240.0d0      !  Single cell spring constant
     double precision, protected:: p=50.0d0       !  Single cell internal hydrostatic pressure coefficient
     double precision, protected:: l0=0.1d0       !  Single cell natural spring-length
@@ -31,10 +32,9 @@ module parameters
     
     !! END OF USER PARAMETERS
 
-    namelist /params/ k, p, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
+    namelist /params/ c, k, p, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
     namelist /params/ traj_dump_int, status_dump_int, cpt_dump_int
 
-    double precision, parameter:: c = 1.0d0         ! c is coeff. of viscous damping      
     double precision, parameter:: mean=0.0d0     !  Mean of the gaussian white noise
     double precision, protected:: noise_strength=0.0d0 ! Constant coeff. (rot. diff. related) in noise term
     double precision, protected:: align_strength=0.0d0 ! Constant coeff. in the Vicsek term
@@ -69,7 +69,7 @@ module parameters
         
         write(err_fd,'(a,/,29("="))') 'PARAMETER CONSISTENCY REPORT:'
         
-        write(err_fd,'(/,a)') 'Units: c, k, n*l0' !TODO: Scale everything so that these really are units
+        write(err_fd,'(/,a)') 'Recommended Units: c, k, n*l0'
 
         write(err_fd,'(/,a)') 'TIMESCALES:'
 
