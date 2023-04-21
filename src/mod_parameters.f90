@@ -5,21 +5,21 @@ module parameters
     !! USER PARAMETERS and THEIR DEFAULT VALUES
 
     !!!! MODEL PARAMETERS
-    double precision, protected:: c=1.0d0         ! c is coeff. of viscous damping      
-    double precision, protected:: k=240.0d0      !  Single cell spring constant
-    double precision, protected:: p=50.0d0       !  Single cell internal hydrostatic pressure coefficient
-    double precision, protected:: l0=0.1d0       !  Single cell natural spring-length
-    double precision, protected:: rc_adh=0.28d0  ! Adhesion interaction cut-off
-    double precision, protected:: rc_rep=0.18d0  ! Repulsion interaction cut-off
-    double precision, protected:: k_adh=0.002d0   !  Adhesion interaction strength
-    double precision, protected:: k_rep=2000.0d0 !  Adhesion interaction strength
-    double precision, protected:: Vo=0.05d0       !  Self propulsion of the beads
-    double precision, protected:: dt=0.001d0   ! Integration timestep
-    integer, protected:: tau_align=10 ! Timescale for Vicsek alignment in multiples of dt
-    integer, protected:: tau_noise=10 ! Timescale for rotational diffusion in multiples of dt
+    double precision, protected:: c=1.0d0         ! c is coeff. of viscous damping
+    double precision, protected:: k=1.0d0      !  Single cell spring constant
+    double precision, protected:: l0=0.02d0       !  Single cell natural spring-length
+    double precision, protected:: p=0.25d0       !  Single cell internal hydrostatic pressure coefficient
+    double precision, protected:: rc_adh=0.06d0  ! Adhesion interaction cut-off
+    double precision, protected:: rc_rep=0.04d0  ! Repulsion interaction cut-off
+    double precision, protected:: k_adh=0.0025d0   !  Adhesion interaction strength
+    double precision, protected:: k_rep=10.0d0 !  Adhesion interaction strength
+    double precision, protected:: Vo=0.0004d0       !  Self propulsion of the beads
+    double precision, protected:: dt=0.1d0   ! Integration timestep
+    integer, protected:: tau_align=1000 ! Timescale for Vicsek alignment in multiples of dt
+    integer, protected:: tau_noise=10000 ! Timescale for rotational diffusion in multiples of dt
 
     !!!! RUN LENGTH
-    integer, protected:: nsamples=2  !! No. of Iterations in terms of traj_dump_int
+    integer, protected:: nsamples=100  !! No. of Iterations in terms of traj_dump_int
 
     !!!! SYSTEM SIZE
     integer,protected:: n = 50    ! No. of beads
@@ -69,7 +69,10 @@ module parameters
         
         write(err_fd,'(a,/,29("="))') 'PARAMETER CONSISTENCY REPORT:'
         
-        write(err_fd,'(/,a)') 'Recommended Units: c, k, n*l0'
+        write(err_fd,'(/,a)') 'UNITS:'
+        write(err_fd,'(a,1x,f0.3)') 'c =', c
+        write(err_fd,'(a,1x,f0.3)') 'k =', k
+        write(err_fd,'(a,1x,f0.3)') 'nl0 =', n*l0        
 
         write(err_fd,'(/,a)') 'TIMESCALES:'
 

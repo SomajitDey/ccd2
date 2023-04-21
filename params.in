@@ -3,5 +3,7 @@
 ! <key> = <value>
 ! Some examples follow:
 
-Vo = 0.0
-nsamples = 3
+ !tau_noise=0
+ !Vo=0.0
+ tau_align=0
+ 

@@ -21,7 +21,7 @@ trap "rm -f ${xy_dir}/*.png" EXIT
 
 frame_count="$(ls -1 "${xy_dir}"/*.xy | wc --lines)"
 
-ls "${xy_dir}"/*.xy | xargs --max-args=1 --no-run-if-empty ccd visual -t png -H1
+ls "${xy_dir}"/*.xy | CCD_NO_QUOTES=set xargs --max-args=1 --no-run-if-empty --max-procs="${OMP_NUM_THREADS:-0}" ccd visual -t png -H1
 
 # http://trac.ffmpeg.org/wiki/Slideshow#Framerates
 cat $(ls -v "${xy_dir}"/frame_*.png) | ffmpeg -framerate ${frame_count}/${duration} -f image2pipe -i - -c:v libx264 -r 60 -pix_fmt yuv420p -vf scale=1280:-2 "${xy_dir##*/}".mp4
