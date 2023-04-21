@@ -3,6 +3,8 @@
 # Collective Cell Dynamics
 This software contains the simulation engine and analysis tools for the bead-spring model as presented in <u>A. Mkrtchyan, J. Astrom, M. Karttunen, *Soft Matter*, 2014, **10**, 4332</u>. The model may or may not have been modified to suit our needs. Complete EOMs are available [here](/docs/EOM_collective_cell_dynamics_Flocking-protected.pdf) subject to availing of license-key from us.
 
+https://user-images.githubusercontent.com/94064508/233665035-016f6d65-7cf8-40da-b3b9-097f73d2dfc8.mp4
+
 # Status
 Work in progress. Check [TODO](#TODO) list below.
 
