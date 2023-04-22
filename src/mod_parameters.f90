@@ -16,7 +16,7 @@ module parameters
     double precision, protected:: Vo=0.0004d0       !  Self propulsion of the beads
     double precision, protected:: dt=0.1d0   ! Integration timestep
     integer, protected:: tau_align=1000 ! Timescale for Vicsek alignment in multiples of dt
-    integer, protected:: tau_noise=10000 ! Timescale for rotational diffusion in multiples of dt
+    integer, protected:: tau_noise=100 ! Timescale for rotational diffusion in multiples of dt
 
     !!!! RUN LENGTH
     integer, protected:: nsamples=100  !! No. of Iterations in terms of traj_dump_int
@@ -35,7 +35,6 @@ module parameters
     namelist /params/ c, k, p, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
     namelist /params/ traj_dump_int, status_dump_int, cpt_dump_int
 
-    double precision, parameter:: mean=0.0d0     !  Mean of the gaussian white noise
     double precision, protected:: noise_strength=0.0d0 ! Constant coeff. (rot. diff. related) in noise term
     double precision, protected:: align_strength=0.0d0 ! Constant coeff. in the Vicsek term
     private:: check_params
@@ -52,7 +51,7 @@ module parameters
         close(fd)
         
         if(tau_align/=0) align_strength = 1.0d0/(tau_align*dt)
-        if(tau_noise/=0) noise_strength = dsqrt(2.0d0/(tau_noise*dt))
+        if(tau_noise/=0) noise_strength = 1.0d0/(tau_noise*dt)
         
         if(.not. present(nocheck) .or. .not. nocheck) call check_params() !i.e. checking is the default behavior
         return

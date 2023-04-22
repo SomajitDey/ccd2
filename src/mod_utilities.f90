@@ -3,18 +3,15 @@ implicit none
 private :: div_rem 
 contains
 
-!!!!!!!!/////// Gaussian random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
+!!!!!!!!/////// Gaussian (Std. Normal) random no. generator \\\\\\\\\\\\\\\\\\\\\\\\\\\
 ! Polar rejection method (Knop[1969]) related to Box-Muller transform
- Subroutine gasdev(g,mean,variance) 
-      DOUBLE PRECISION,INTENT(IN)::variance,mean
+ Subroutine stdnormal(g)
       DOUBLE PRECISION,INTENT(OUT)::g(:)
-      DOUBLE PRECISION:: stddev,fac,rsq,v1,v2
+      DOUBLE PRECISION:: fac,rsq,v1,v2
       DOUBLE PRECISION:: rands(2)
       INTEGER:: i, size_g
       double precision, parameter :: small=epsilon(0.0d0)
-      
-      stddev=DSQRT(variance)
-      
+            
       size_g=size(g)
      
      harvest_g_array: DO i=1,size_g,2
@@ -25,11 +22,11 @@ contains
         rsq=v1**2+v2**2
         if((rsq<1.0d0).AND.(rsq>small))EXIT
         ENDDO
-        fac=stddev*DSQRT(-2.0d0*dlog(rsq)/(rsq))
-        g(i)=v1*fac+mean
-        if(i/=size_g) g(i+1)=v2*fac+mean 
+        fac=DSQRT(-2.0d0*dlog(rsq)/(rsq))
+        g(i)=v1*fac
+        if(i/=size_g) g(i+1)=v2*fac
      END DO harvest_g_array
-      END subroutine gasdev
+      END subroutine stdnormal
 
 
 
