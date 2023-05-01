@@ -138,7 +138,8 @@ module parameters
         
         factor = rc_rep/l0
         write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_rep =', factor, 'l0'
-        if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: l0 > rc_rep'
+        if(factor < 1.0d0) write(err_fd,'(a)') '**Warning: l0 > rc_rep &
+            &Beads from neighboring cells may interlock or the cells may penetrate each other'
 
         factor = rc_adh/l0
         write(err_fd,'(a,1x,f0.3,1x,a)') 'rc_adh =', factor, 'l0'        
