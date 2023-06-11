@@ -131,6 +131,30 @@ end subroutine timestamp
         
         cmd_line_flag = index(cmd_line//delimiter, delimiter//flag//delimiter) /= 0
     end function cmd_line_flag
+
+    ! Returns argument of a command line option. Format of cmd line : <cmd> --<opt>=<arg> ...
+    ! If option is given multiple times, returns the argument for its last occurence only
+    subroutine cmd_line_opt(opt, arg)
+        character(len=*), intent(in) :: opt
+        character(len=*), intent(out) :: arg
+        character(len=:), allocatable :: cmd_line
+        integer :: cmd_line_length, opt_start_index, opt_end_index, opt_length
+        
+        call get_command(length=cmd_line_length)
+        allocate(character(len=cmd_line_length) :: cmd_line)
+        call get_command(command=cmd_line)
+        
+        opt_start_index = index(cmd_line, ' '//opt//'=', back=.true.) + 1
+        ! +1 above compensates for the leading ' ' in the substring
+        if(opt_start_index == 1) then
+            arg = ''
+            return
+        end if
+        opt_end_index = opt_start_index + scan(cmd_line(opt_start_index:)//' ', ' ') - 1
+        ! -1 above compensates for the trailing ' ' in the substring        
+        opt_length=len(opt)+1 ! +1 is to take into account the delimiting '='
+        arg = cmd_line(opt_start_index+opt_length:opt_end_index)
+    end subroutine cmd_line_opt
     
     subroutine print_help()
         character(len=32) :: prog_name
