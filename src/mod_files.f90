@@ -104,8 +104,8 @@ module files
         compressed_fp_for_io(:,:,10) = real(f_ady)
         
         call pack_ring_nb()
-        write(traj_fd, asynchronous='yes', rec=recnum, iostat=io_stat) &
-            timepoint, compressed_fp_for_io, ring_nb_io
+        write(traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) timepoint, compressed_fp_for_io, ring_nb_io
+        !TODO: asynchronous='yes' above with introduction of wait(traj_fd) and asynchronous attributes for x,y
         if(io_stat /= 0) error stop 'Fatal: Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write
 
