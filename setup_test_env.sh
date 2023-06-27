@@ -18,4 +18,7 @@ export PATH="${this_script_is_at}/build:${this_script_is_at}/scripts:${this_scri
 . "${this_script_is_at}/ccd_completion.sh"
 ulimit -s unlimited
 export OMP_STACKSIZE=500m
+
+export CCD_NO_QUOTES=set
+
 echo "Done. To avail --help|-h messages, install properly with: make && make install"

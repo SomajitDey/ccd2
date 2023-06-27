@@ -1,7 +1,8 @@
 ! Help:Begin
 !Brief: Initializes state. Positions are initialized randomly. Motility vectors initialized isotropically by default.
-!Usage: ccd_init [--no-check]
+!Usage: ccd_init [--no-check] [--box=<value> | --box=<scale>%]
 ! -n | --no-check : Do not check parameters for consistency
+! --box : Provide desired box length. E.g. --box=5.5. Can also provide relative length in percentage. E.g. --box=200%
 ! Help:End
 
 program ccd_init
@@ -32,5 +33,6 @@ program ccd_init
     
     call cpt_write(timepoint, recnum, 0, 1)
     
-    write(*,'(a,1x,"(",es23.16,",",es23.16,")")') 'Average motility vector:', sum(mx)/(m*n), sum(my)/(m*n)
+    write(err_fd,'(a,1x,"(",es23.16,",",es23.16,")")') 'Average motility vector:', sum(mx)/(m*n), sum(my)/(m*n)
+    write(err_fd,'(a,1x,es23.16)') 'Box:', box
 end program ccd_init
