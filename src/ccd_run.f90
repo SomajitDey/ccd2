@@ -10,7 +10,7 @@
 ! Help:End
 
 program ccd_run
-	use shared
+    use shared
     use prerun
     use grid_linked_list
     use forces
@@ -19,70 +19,70 @@ program ccd_run
 
     implicit none
 
-	integer:: j1,ji,jf
-    real:: cpusec,wcsec
+    integer :: j1, ji, jf
+    real :: cpusec, wcsec
 
     call help_handler()
-    
+
     ! Initialize/Pre-run setup
-    call prerun_setup(ji,jf)
-    
+    call prerun_setup(ji, jf)
+
     call log_this('Setting up neighbor list grids')
-	call gridmaps
+    call gridmaps
 
     call log_this('Starting the main run')
 
     call timestamp()
 
-	!$omp parallel default(shared) private(j1)
-    timeseries: do j1=ji,jf
+!$omp parallel default(shared) private(j1)
+    timeseries: do j1 = ji, jf
 
-	call force()
+        call force()
 
-    !$omp master
+!$omp master
         ! Master makes sure random_number is called from a particular thread alone, i.e. the master thread.
         ! This is important as gfortran provides different prng sequences (different seeds) for different threads.
         ! Calling rands from different prngs may upset the distribution/correlation we are after
-        call random_seed(get = prng_seeds)
-             CALL stdnormal(noise) ! Updates prng_seeds as side-effect
-             ! Note the use of 1/dt in the desired variance. This is because white noise = stdnormal/sqrt(dt)
-    !$omp end master
+        call random_seed(get=prng_seeds)
+        call stdnormal(noise) ! Updates prng_seeds as side-effect
+        ! Note the use of 1/dt in the desired variance. This is because white noise = stdnormal/sqrt(dt)
+!$omp end master
 
-    !$omp single
-    ! links() couldn't be parallelized easily as most of it needs to run sequentially. 
-    call links()
-    !$omp end single
-    
-	call interaction(store_ring_nb = mod(j1,traj_dump_int).eq.0)
+!$omp single
+        ! links() couldn't be parallelized easily as most of it needs to run sequentially.
+        call links()
+!$omp end single
 
-    !$omp sections
-    !$omp section
-             cpt_dump: if(mod(j1,cpt_dump_int).eq.0) then
-                call cpt_write(timepoint, recnum, jf-j1, j1)
-                call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
-             end if cpt_dump
+        call interaction(store_ring_nb=mod(j1, traj_dump_int) .eq. 0)
 
-        traj_dump: if(mod(j1,traj_dump_int).eq.0) then
+!$omp sections
+!$omp section
+        cpt_dump: if (mod(j1, cpt_dump_int) .eq. 0) then
+            call cpt_write(timepoint, recnum, jf - j1, j1)
+            call log_this('Created checkpoint @ timestep = '//int_to_char(j1))
+        end if cpt_dump
+
+        traj_dump: if (mod(j1, traj_dump_int) .eq. 0) then
             recnum = recnum + 1
             call traj_write(recnum, timepoint)
         end if traj_dump
 
         timepoint = timepoint + dt ! Update timepoint
-    !$omp section
-        for_pv: if(mod(j1,status_dump_int).eq.0) then
+!$omp section
+        for_pv: if (mod(j1, status_dump_int) .eq. 0) then
             call status_dump()
         end if for_pv
-    !$omp end sections
-    
-	call move_noise() ! Update state (coordinates)
+!$omp end sections
+
+        call move_noise() ! Update state (coordinates)
 
     end do timeseries
-    !$omp end parallel
+!$omp end parallel
 
     ! Because coordinates were update before exiting timeseries, update prng_seeds too. Required for cpt_dump later
-    call random_seed(get = prng_seeds)
+    call random_seed(get=prng_seeds)
 
-    call timestamp(cpusec,wcsec)
+    call timestamp(cpusec, wcsec)
 
     call log_this('Run complete. Writing final checkpoint')
     call cpt_write(timepoint, recnum, 0, 1)
@@ -91,7 +91,7 @@ program ccd_run
 
     call metadata_dump()
 
-    call perf_dump(cpusec, wcsec, jf-ji+1)
+    call perf_dump(cpusec, wcsec, jf - ji + 1)
 
     call log_this('Done')
 

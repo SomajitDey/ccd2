@@ -55,3 +55,15 @@ Inline comments should not start with capital letter. Full comment lines should 
 
 ### Array declaration
 Use `dimension()` format. 
+
+### Linting
+[`fortran-linter`](https://github.com/cphyc/fortran-linter) or [`fprettify`](https://github.com/pseewald/fprettify) may be used for automatically stylizing the codebase:
+
+```bash
+fprettify -l 120 -i 4 --enable-decl --case 1 1 1 0 --strict-indent --c-relations *.f90
+```
+
+Line widths may be checked with:
+```bash
+../tests/width_check *.f90
+```
