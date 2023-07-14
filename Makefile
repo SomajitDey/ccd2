@@ -105,7 +105,8 @@ VPATH := $(SRC_DIR)
 INSTALL_PATH_MAIN := /usr/local/bin
 # The following must be a custom directory that doesn't exist by default such that it's existence implies previous installation
 INSTALL_PATH_INTERNALS := $(INSTALL_PATH_MAIN)/$(PACKAGE)_
-BASHCOMP_INSTALL_PATH := /etc/bash_completion.d
+# BASHCOMP_INSTALL_PATH := /etc/bash_completion.d # Legacy standard
+BASHCOMP_INSTALL_PATH := /usr/share/bash-completion/completions
 
 # Shell which runs the recipes
 SHELL := bash
@@ -163,13 +164,13 @@ install:
 	@sudo mkdir $(INSTALL_PATH_INTERNALS) || { echo -e $(RED)"make: Uninstall earlier installation first"$(NOCOLOR) && false;}
 	sudo install -t $(INSTALL_PATH_INTERNALS) $(EXECS) $(SCRIPTS)
 	sudo install -T $(DRIVER) $(INSTALL_PATH_MAIN)/$(PACKAGE)
-	sudo install -t $(BASHCOMP_INSTALL_PATH) $(BASHCOMP)
+	sudo install -T $(BASHCOMP) $(BASHCOMP_INSTALL_PATH)/$(PACKAGE)
 	echo $(HELPDOC_SRCS) | xargs -n1 -r sudo helpdoc -e || true
 	@echo -e \\n$(GREEN)"make install: Success"$(NOCOLOR)
 
 uninstall:
 	sudo rm $(INSTALL_PATH_MAIN)/$(PACKAGE)
 	sudo rm -rf $(INSTALL_PATH_INTERNALS)
-	sudo rm $(BASHCOMP_INSTALL_PATH)/$(BASHCOMP)
+	sudo rm $(BASHCOMP_INSTALL_PATH)/$(PACKAGE)
 	echo $(HELPDOC_CMDS) | xargs -n1 -r sudo helpdoc -d || true
 	@echo -e \\n$(GREEN)"make uninstall: Success"$(NOCOLOR)
