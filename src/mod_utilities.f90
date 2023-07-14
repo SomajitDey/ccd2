@@ -131,7 +131,8 @@ contains
         cmd_line_flag = index(cmd_line//delimiter, delimiter//flag//delimiter) /= 0
     end function cmd_line_flag
 
-    ! Returns argument of a command line option. Format of cmd line : <cmd> --<opt>=<arg> ...
+    ! Returns argument of a command line option `opt`. Format of cmd line : <cmd> --<opt>=<arg> ...
+    ! Holds the value in `arg` and optionally its length in `length`. `length=0` means no `arg` present.
     ! If option is given multiple times, returns the argument for its last occurence only
     ! Example: cmd_line_opt('--box',boxlen_buffer)
     subroutine cmd_line_opt(opt, arg, length)
@@ -158,6 +159,39 @@ contains
         if (present(arg)) arg = cmd_line(opt_start_index + opt_length:opt_end_index)
         if (present(length)) length = opt_end_index - (opt_start_index + opt_length) + 1
     end subroutine cmd_line_opt
+
+    ! Returns `num`th command line argument (i.e. any argument that is not an option starting with - or --)
+    ! Holds the value in `arg` and optionally its length in `length`. `length=0` means no `arg` present.
+    ! Optionally, `total` holds the total number of such arguments in the command line
+    subroutine cmd_line_arg(num, arg, length, total)
+        integer, intent(in) :: num
+        character(len=*), intent(out), optional :: arg ! optional in case only length is queried
+        integer, intent(out), optional :: length ! Size of arg, optional
+        integer, intent(out), optional :: total ! Holds the total number of cmd line non-option arguments
+        integer :: counter, max_counter, arg_count, arg_length
+        character :: prefix
+
+        counter = 0 ! counts the number of all types of arguments including options
+        arg_count = 0 ! counts the number of non-option arguments only
+        max_counter = command_argument_count()
+        ! Loop over all command line arguments
+        do
+            counter = counter + 1
+            call get_command_argument(counter, prefix, arg_length)
+            if (prefix /= '-') then
+                arg_count = arg_count + 1
+                if (arg_count == num) then
+                    if (present(arg)) call get_command_argument(counter, arg)
+                    if (present(length)) length = arg_length
+                    if (present(total)) total = arg_count + (max_counter - counter)
+                    return
+                end if
+            end if
+        end do
+        if (present(arg)) arg = ''
+        if (present(length)) length = 0
+        if (present(total)) total = arg_count
+    end subroutine cmd_line_arg
 
     subroutine print_help()
         character(len=32) :: prog_name
