@@ -49,7 +49,13 @@ contains
         if ((argument(arglen:arglen) == '%') .or. arglen == 0) then
             if (argument(arglen:arglen) == '%') read (argument(1:arglen - 1), *, err=100, end=100) box_scale_percentage
 100         box_scale = box_scale_percentage/100
-            radius_eq = (2*k*dtan(pi/n)*radius_l0)/(2*k*dtan(pi/n) - p)
+
+! Equilibrium radius estimation from Spring-Pressure force balance. Based on user chosen pressure force (pl0 or pl)
+            if (cmd_line_flag('--pl0')) then
+                radius_eq = (2*k*dtan(pi/n) + p)*radius_l0/(2*k*dtan(pi/n))
+            else
+                radius_eq = (2*k*dtan(pi/n)*radius_l0)/(2*k*dtan(pi/n) - p)
+            end if
             if (radius_eq < 0.d0) error stop &
                 'Spring-Pressure force balance non-existent. Cannot estimate boxlength. Please provide with --box='
             dist_eq = 2*radius_eq + rc_rep

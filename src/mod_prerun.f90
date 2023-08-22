@@ -8,6 +8,7 @@ contains
         use parameters
         use files
         use integrator, only: evolve_motility_bool
+        use forces, only: force, force_pl, force_pl0
 !$      use omp_lib, only: omp_get_max_threads
 
         integer, intent(out) :: ji, jf
@@ -74,6 +75,13 @@ contains
         if (cmd_line_flag('--no-evolve-motility')) then
             evolve_motility_bool = 0.0d0
             call log_this('Motility unit vectors are not being evolved')
+        end if
+
+        ! Associate intracellular force call with the user-chosen subroutine
+        if (cmd_line_flag('--pl0')) then
+            force => force_pl0
+        else
+            force => force_pl
         end if
     end subroutine prerun_setup
 end module prerun
