@@ -75,6 +75,9 @@ program ccd_analysis
             nemop = nemop + cell_nemop_cos_theta*cell_nemop_cos_theta
         end do cells
 
+        ! Computing msd in centre of mass frame
+        msd = msd - nrings*sys_sd(init_sys_xcm, init_sys_ycm)
+
         ! Non-gaussian parameter: M. Chiang and D. Marenduzzo, EPL, 116, 10 2016
         alpha2 = alpha2*nrings/(2*msd*msd) - 1.d0
         msd = msd/nrings

@@ -9,6 +9,7 @@ module analysis
     implicit none
     integer :: nrings, nbeads_per_ring
     double precision, dimension(:), allocatable :: init_xcm, init_ycm
+    double precision :: init_sys_xcm, init_sys_ycm
     character(len=*), parameter :: analysis_dump_fname = 'analysis.txt'
     integer :: analysis_dump_fd
 
@@ -37,6 +38,9 @@ contains
             call cell_cm(ring, init_xcm(ring), init_ycm(ring))
         end do
 
+        init_sys_xcm = sum(x)/size(x)
+        init_sys_ycm = sum(y)/size(y)
+
         open (newunit=analysis_dump_fd, file=analysis_dump_fname, status='replace')
 
         ! Write the column headers in analysis dump file
@@ -52,6 +56,17 @@ contains
         write (analysis_dump_fd, '(i0,2x,10(es23.16,2x))') &
             rec_index, time, msd, alpha2, shapeind, hexop1, hexop2, vicsekop, areafrac, tension, nemop
     end subroutine dump
+
+    ! Outputs global/system centre of mass square deviation
+    double precision function sys_sd(init_sys_xcm, init_sys_ycm)
+        double precision, intent(in) :: init_sys_xcm, init_sys_ycm
+        double precision :: sys_xcm_dev, sys_ycm_dev
+
+        sys_xcm_dev = sum(x)/size(x) - init_sys_xcm
+        sys_ycm_dev = sum(y)/size(y) - init_sys_ycm
+
+        sys_sd = (sys_xcm_dev*sys_xcm_dev) + (sys_ycm_dev*sys_ycm_dev)
+    end function sys_sd
 
     ! Takes cell/ring index and outputs cm coordinates
     subroutine cell_cm(ring, xcm, ycm)
