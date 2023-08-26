@@ -27,7 +27,7 @@ program ccd_analysis
     allocate (character(len=metadata_fname_length) :: metadata_fname)
     call cmd_line_arg(1, metadata_fname)
 
-    call init(metadata_fname)
+    call setup(metadata_fname)
 
     ! Sort out the begin and end record number from --records=<from>:<to> cmd line option, if any
     begin_rec = 1 ! default
@@ -42,6 +42,8 @@ program ccd_analysis
         if ((begin_rec < 1) .or. (end_rec > recnum)) error stop 'Fatal: Provided records range out of bounds'
         deallocate (opt_arg)
     end if
+
+    call init(begin_rec)
 
     traj_records: do rec_index = begin_rec, end_rec
         call traj_read(rec_index, timepoint)

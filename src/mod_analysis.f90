@@ -15,11 +15,11 @@ module analysis
 
 contains
 
-    ! Initialization/Setup: Reading in parameters, Opening traj file, analysis dump file etc.
+    ! Reading in parameters, Opening traj file, analysis dump file etc.
     ! Provide metadata file for reading in parameters as the original parameter file may not be present
-    subroutine init(metadata_fname)
+    subroutine setup(metadata_fname)
         character(len=*), intent(in) :: metadata_fname
-        integer :: pending_steps, current_step, ring
+        integer :: pending_steps, current_step
         character(len=40) :: params_hash
 
         call assign_params(fname=metadata_fname, nocheck=.true.)
@@ -32,7 +32,20 @@ contains
         nbeads_per_ring = size(x, 1)
 
         allocate (init_xcm(nrings), init_ycm(nrings))
-        call traj_read(1, timepoint)
+
+        open (newunit=analysis_dump_fd, file=analysis_dump_fname, status='replace')
+
+        ! Write the column headers in analysis dump file
+        write (analysis_dump_fd, '(11(a,2x))') &
+            'rec', 'time', 'msd', 'alpha2', 'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
+    end subroutine setup
+
+    ! Initialize
+    subroutine init(begin_rec)
+        integer, intent(in) :: begin_rec
+        integer :: ring
+
+        call traj_read(begin_rec, timepoint)
 
         do ring = 1, nrings
             call cell_cm(ring, init_xcm(ring), init_ycm(ring))
@@ -40,12 +53,6 @@ contains
 
         init_sys_xcm = sum(x)/size(x)
         init_sys_ycm = sum(y)/size(y)
-
-        open (newunit=analysis_dump_fd, file=analysis_dump_fname, status='replace')
-
-        ! Write the column headers in analysis dump file
-        write (analysis_dump_fd, '(11(a,2x))') &
-            'rec', 'time', 'msd', 'alpha2', 'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
     end subroutine init
 
     ! Dump analysis results
