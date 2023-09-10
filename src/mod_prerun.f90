@@ -80,8 +80,10 @@ contains
         ! Associate intracellular force call with the user-chosen subroutine
         if (cmd_line_flag('--pl0')) then
             force => force_pl0
+            call log_this('Using pl0 for the pressure force')
         else
             force => force_pl
+            call log_this('Using pl for the pressure force')
         end if
     end subroutine prerun_setup
 end module prerun

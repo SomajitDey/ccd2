@@ -7,6 +7,7 @@
 program ccd_traj_to_xy
     use files
     use utilities, only: cmd_line_opt, cmd_line_arg, int_to_char, help_handler
+    use gnuplot, only: gp_xy_dump
 !$  use omp_lib, only: omp_get_max_threads
     implicit none
     integer :: pending_steps, current_step, rec_index, begin_rec, end_rec
@@ -56,8 +57,8 @@ program ccd_traj_to_xy
     do rec_index = begin_rec, end_rec
         call threadsafe_traj_read_xy_only(rec_index, timepoint_, x_, y_)
         frame = rec_index*traj_dump_int
-        call xy_dump(fname=dump_dir//dump_fname_prefix//int_to_char(frame)//dump_fname_suffix, &
-                     boxlen=box, x=x_, y=y_, title='Frame: '//int_to_char(frame))
+        call gp_xy_dump(fname=dump_dir//dump_fname_prefix//int_to_char(frame)//dump_fname_suffix, &
+                        boxlen=box, x=x_, y=y_, title='Frame: '//int_to_char(frame))
         call log_this('Dumped #frame= '//int_to_char(frame))
     end do
 !$omp end parallel do
