@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Help:Begin
 # Brief: Plots the given config using gnuplot.
-# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [<path/file.xy>]
+# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [-l] [<path/file.xy>]
 # <type> = png | pdf | eps | svg
 # <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>. To highlight all cells use <index> = 0
 # <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
 # Provide the optional '#' if you want solid fill
+# The '-l' option prints cell numbers at the com of the respective cells
 # Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
 # such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
@@ -14,11 +15,12 @@
 # Setting gnuplot alias
 gplot="${GNUPLOT_PATH:-$(which gnuplot)}"
 
-# Create tmp gnuplot script with autoremoval on exit
-tmp_plt_script="$(mktemp .tmp.XXXX.plt)"
-trap "rm -f ${tmp_plt_script}" EXIT
+# Create tmp files with autoremoval on exit
+tmp_plt_script="$(mktemp .tmp.XXXX.plt)" # To hold all the gnuplot commands
+tmp_xy_file="$(mktemp -u .tmp.XXXX.xy)" # To hold the datafile for plotting labels: cm_x cm_y cell_id
+trap "rm -f ${tmp_plt_script} ${tmp_xy_file}" EXIT
 
-while getopts :H:t:h opt; do
+while getopts :H:t:lh opt; do
   case "${opt}" in
     H) 
         OPTARG="${OPTARG,,}" # Convert to lowercase
@@ -56,6 +58,9 @@ while getopts :H:t:h opt; do
                 exit 1
                 ;;
         esac
+        ;;
+    l)
+        label='set'
         ;;
     h)
         helpdoc ccd_visual
@@ -98,6 +103,11 @@ cat > "${tmp_plt_script}" << EOF
     #set size square
     plot '${xyfile}' using 'x':'y' with line linecolor black linewidth 3 \
         ${plt_cmd}
+    replot '${tmp_xy_file}' using 1:2:3 with labels
     set output
 EOF
+
+# If '-l' option is present at command-line, extract ID@COM data into a separate file (to be replotted with labels)
+[[ -v label ]] && grep ^'#ID@COM' "${xyfile}" | cut -d' ' -f2- > "${tmp_xy_file}"
+
 eval "${gplot}" "${persist}" "${tmp_plt_script}" && echo "Done visualizing ${xyfile}" >&2

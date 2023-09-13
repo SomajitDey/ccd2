@@ -82,11 +82,18 @@ contains
         write (fd, '(a,4x,a,4x,a)') 'x', 'y', 'bead'
 
         cells: do l = 1, size(x, 2)
-            ! Two consecutive blank records for separating datasets containing single cell info
-            ! Basically creates the demarcator for gnuplot `index`s
-            write (fd, '(/)')
-            write (fd, '(a,1x,i0)') '#Cell:', l
+            ! Print comment line indicating start of cell data
+            ! Notice 2 consecutive blank records for separating datasets containing single cell info
+            ! This is to provide the demarcator for gnuplot `index`s
+            write (fd, '(//,a,1x,i0)') '#Cell:', l
+
             call dump_cell_xy(fd, boxlen, x(:, l), y(:, l))
+
+            ! Print comment line containing: cm_x cm_y cell_id
+            write (fd, '(a,1x,es23.16,1x,es23.16,1x,i0)') '#ID@COM', &
+                modulo(sum(x(:, l))/size(x, 1), boxlen), modulo(sum(y(:, l))/size(y, 1), boxlen), l
+
+            ! Print comment line indicating end of cell data
             write (fd, '(a,1x,i0)') '#End_Cell:', l
         end do cells
         close (fd, status='keep')
