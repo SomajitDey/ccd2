@@ -91,6 +91,13 @@ fi
 title="$(grep '#Title:' "${xyfile}" | cut -d ' ' -f 2-)"
 box="$(grep '#Box:' "${xyfile}" | awk '{print $2}')"
 
+# If '-l' option is present at command-line, extract ID@COM data into a separate file (to be plotted with labels)
+# Also update the plot command accordingly
+if [[ -v label ]]; then
+  grep ^'#ID@COM' "${xyfile}" | cut -d' ' -f2- > "${tmp_xy_file}"
+  plt_cmd="${plt_cmd}, '${tmp_xy_file}' using 1:2:3 with labels"
+fi
+
 # Prep the script and execute with gnuplot
 cat > "${tmp_plt_script}" << EOF
     ${term_cmd}
@@ -103,11 +110,7 @@ cat > "${tmp_plt_script}" << EOF
     #set size square
     plot '${xyfile}' using 'x':'y' with line linecolor black linewidth 3 \
         ${plt_cmd}
-    replot '${tmp_xy_file}' using 1:2:3 with labels
     set output
 EOF
-
-# If '-l' option is present at command-line, extract ID@COM data into a separate file (to be replotted with labels)
-[[ -v label ]] && grep ^'#ID@COM' "${xyfile}" | cut -d' ' -f2- > "${tmp_xy_file}"
 
 eval "${gplot}" "${persist}" "${tmp_plt_script}" && echo "Done visualizing ${xyfile}" >&2
