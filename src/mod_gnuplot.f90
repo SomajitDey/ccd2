@@ -141,7 +141,7 @@ contains
                 secs(last_sec)%sig = sec_sig
             end if
             allocate (current_arc)
-            current_arc = cell_arc(lead=i, next=secs(last_sec)%head)
+            current_arc = cell_arc(lead=i, trail=i, next=secs(last_sec)%head)
             secs(last_sec)%head => current_arc
         end do cell_beads
 
