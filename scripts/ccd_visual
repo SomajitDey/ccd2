@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Help:Begin
 # Brief: Plots the given config using gnuplot.
-# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [-l] [<path/file.xy>]
+# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [-L] [<path/file.xy>]
 # <type> = png | pdf | eps | svg
 # <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>. To highlight all cells use <index> = 0
 # <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
 # Provide the optional '#' if you want solid fill
-# The '-l' option prints cell numbers at the com of the respective cells
+# The '-L' option prints cell numbers at the com of the respective cells
 # Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
 # such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
@@ -20,7 +20,7 @@ tmp_plt_script="$(mktemp .tmp.XXXX.plt)" # To hold all the gnuplot commands
 tmp_xy_file="$(mktemp -u .tmp.XXXX.xy)" # To hold the datafile for plotting labels: cm_x cm_y cell_id
 trap "rm -f ${tmp_plt_script} ${tmp_xy_file}" EXIT
 
-while getopts :H:t:lh opt; do
+while getopts :H:t:Lh opt; do
   case "${opt}" in
     H) 
         OPTARG="${OPTARG,,}" # Convert to lowercase
@@ -59,7 +59,7 @@ while getopts :H:t:lh opt; do
                 ;;
         esac
         ;;
-    l)
+    L)
         label='set'
         ;;
     h)

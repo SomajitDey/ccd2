@@ -66,14 +66,14 @@ ccd run > 'metadata.txt' 2> 'logfile.txt'
 ccd cpt_to_xy
 
 # Visualize config from XY dump (config.xy), highlighting the 10th cell in green
-ccd visual -H '10@green' # Use the GNUPLOT_PATH env variable if gnuplot is not in PATH
+ccd visual -L -H '10@green#' # Use the GNUPLOT_PATH env variable if gnuplot is not in PATH
 
 # To check live run progress
 ccd status
 
 # Make a movie (.mp4) of length=15 seconds out of the trajectory (traj.bin)
 ccd traj_to_xy 'movie'
-ccd movie -l 15 'movie'
+ccd movie -l 15 -H1# 'movie'
 
 # To archive run results (trajectory: traj.bin and final-state/checkpoint: state.cpt)
 ccd archive 'metadata.txt'

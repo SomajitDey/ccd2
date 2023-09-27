@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Help:Begin
 # Brief: Makes movie from the xy files in the given directory.
-# Usage: ccd_movie [-l <length_in_seconds>] [-H <arg>] [<directory>]
-# The -H option above is identical to that for `ccd_visual`. See: ccd visual -h
+# Usage: ccd_movie [-o <output_filename>] [-l <length_in_seconds>] [-H <arg>] [-L] [<directory>]
+# The -H and -L options above are identical to those for `ccd_visual`. See: ccd visual -h
 # Help:End
 
-duration=15 # Deafult duration in seconds
-while getopts :l:H:h opt; do
+while getopts :o:l:H:Lh opt; do
     case "${opt}" in
+        o) outfile="${OPTARG}";;
         l) duration="${OPTARG}"; (( duration > 0)) || exit 1;;
         H) highlight_opt="${highlight_opt} -H ${OPTARG}" ;;
+        L) highlight_opt="${highlight_opt} -L" ;;
         h) helpdoc ccd_movie ; exit;;
         *) echo "Provided option not supported" >&2; exit 1;;
     esac
@@ -18,12 +19,25 @@ done
 xy_dir="${!OPTIND}"
 [[ -d "${xy_dir}" ]] || read -ep "Provide directory containing xy frames: " xy_dir
 xy_dir="${xy_dir%/}" # Trimming trailing slash, if any
+outfile="${outfile:-"${xy_dir##*/}".mp4}"
+if [[ -f "${outfile}" ]]; then echo "File ${outfile} already exists. Exiting" ; exit 1; fi
 
 trap "rm -f ${xy_dir}/*.png" EXIT
 
 frame_count="$(ls -1 "${xy_dir}"/*.xy | wc --lines)"
 
+# Generate pngs from the frames
 ls "${xy_dir}"/*.xy | CCD_NO_QUOTES=set xargs --max-args=1 --no-run-if-empty --max-procs="${OMP_NUM_THREADS:-0}" ccd visual -t png ${highlight_opt}
 
+# Default duration in seconds based on the number of frames provided, assuming 60FPS
+duration="${duration:-$((frame_count/60 + 1))}"
+
+# Producing the video/movie
 # http://trac.ffmpeg.org/wiki/Slideshow#Framerates
-cat $(ls -v "${xy_dir}"/frame_*.png) | ffmpeg -framerate ${frame_count}/${duration} -f image2pipe -i - -c:v libx264 -r 60 -pix_fmt yuv420p -vf scale=1280:-2 "${xy_dir##*/}".mp4
+cat $(ls -v "${xy_dir}"/frame_*.png) | ffmpeg -framerate ${frame_count}/${duration} -f image2pipe -i - -c:v libx264 -r 60 -pix_fmt yuv420p -vf scale=1280:-2 "${outfile}"
+if [[ $? == 0 ]]; then
+  echo -e "\nGenerated movie: ${outfile}\nVideo duration: ${duration} second(s)\n"
+else
+  rm -f "${outfile}"
+  exit 1
+fi
