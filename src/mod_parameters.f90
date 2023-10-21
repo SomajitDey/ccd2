@@ -11,6 +11,7 @@ module parameters
     double precision, protected :: p = 0.25d0       !  Single cell internal hydrostatic pressure coefficient
     double precision, protected :: rc_adh = 0.06d0  ! Adhesion interaction cut-off
     double precision, protected :: rc_rep = 0.04d0  ! Repulsion interaction cut-off
+    double precision, protected :: ovrlp_trshld = dcos(atan(1.d0)) ! Cell-Cell overlap metric threshold
     double precision, protected :: k_adh = 0.0025d0   !  Adhesion interaction strength
     double precision, protected :: k_rep = 10.0d0 !  Adhesion interaction strength
     double precision, protected :: Vo = 0.0004d0       !  Self propulsion of the beads
@@ -34,6 +35,7 @@ module parameters
 
     namelist /params/ c, k, p, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
     namelist /params/ traj_dump_int, status_dump_int, cpt_dump_int
+    namelist /params/ ovrlp_trshld
 
     double precision, protected :: noise_strength = 0.0d0 ! Constant coeff. (rot. diff. related) in noise term
     double precision, protected :: align_strength = 0.0d0 ! Constant coeff. in the Vicsek term
@@ -68,7 +70,7 @@ contains
 
         write (err_fd, '(a,/,29("="))') 'PARAMETER CONSISTENCY REPORT:'
 
-        write (err_fd, '(/,a)') 'UNITS:'
+        write (err_fd, '(/,a)') 'POSSIBLE UNITS:'
         write (err_fd, '(a,1x,f0.3)') 'c =', c
         write (err_fd, '(a,1x,f0.3)') 'k =', k
         write (err_fd, '(a,1x,f0.3)') 'nl0 =', n*l0
@@ -168,6 +170,11 @@ contains
         factor = k_adh/k_adh_estimate
         write (err_fd, '(a,1x,f0.3,1x,a)') 'k_adh =', factor, 'k_adh_estimate [Eq. 5 in Mkrtchyan(Soft Matter, 2014)]'
         if (factor > 10.0d0 .or. factor < 10.0d0) write (err_fd, '(a)') '**Warning: k_adh does not respect estimate'
+
+        if (ovrlp_trshld > 1.d0) then
+            write (err_fd, '(a)') '**Fatal:  ovrlp_trshld must be within [0,1]'
+            fatal = .true.
+        end if
 
         write (err_fd, '(/,a,/,29("="),/)') 'END OF CONSISTENCY REPORT:' ! Demarcates End of Report
 

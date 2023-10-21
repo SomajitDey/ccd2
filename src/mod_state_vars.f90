@@ -8,6 +8,7 @@ module state_vars
     double precision, dimension(:, :), allocatable :: fx, fy ! Intracellular force
     double precision, dimension(:, :), allocatable :: f_rpx, f_rpy ! Intercellular steric repulsion / volume exclusion
     double precision, dimension(:, :), allocatable :: f_adx, f_ady ! Intercellular attraction / adhesion
+    double precision, dimension(:), allocatable :: cmx, cmy ! Centre of mass coordinates for every cell
     double precision, dimension(:), allocatable :: noise
     integer, dimension(:), allocatable :: prng_seeds ! Stores the state of the P(seudo) R(andom) N(um) G(enerator)
     integer :: recnum = 0 ! Record number the trajectory file is currently positioned at
@@ -28,7 +29,7 @@ contains
             fx(1:beadnum, 1:cellnum), fy(1:beadnum, 1:cellnum), &
             f_rpx(1:beadnum, 1:cellnum), f_rpy(1:beadnum, 1:cellnum), &
             f_adx(1:beadnum, 1:cellnum), f_ady(1:beadnum, 1:cellnum), &
-            noise(1:cellnum), &
+            cmx(1:cellnum), cmy(1:cellnum), noise(1:cellnum), &
             prng_seeds(seeds_size), &
             stat=allocate_array_stat)
 
