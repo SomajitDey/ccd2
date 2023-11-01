@@ -1,7 +1,7 @@
 [![CI Build Status](https://github.com/PhyBi/Collective-Cell-Dynamics/actions/workflows/build.yml/badge.svg)](https://github.com/PhyBi/Collective-Cell-Dynamics/actions/workflows/build.yml) ![Bash completion](https://img.shields.io/badge/Commandline%20Completion-Enabled-green) ![OS](https://img.shields.io/badge/Platform-Linux%2C%20MacOS(X)%2C%20WSL-blue)
 
 # Collective Cell Dynamics
-This software contains the simulation engine and analysis tools for the bead-spring model as presented in <u>A. Mkrtchyan, J. Astrom, M. Karttunen, *Soft Matter*, 2014, **10**, 4332</u>. The model may or may not have been modified to suit our needs. Complete EOMs are available [here](/docs/EOM_collective_cell_dynamics_Flocking-protected.pdf) subject to availing of license-key from us.
+This software contains the simulation engine and analysis tools for the bead-spring model as presented in <u>A. Mkrtchyan, J. Astrom, M. Karttunen, *Soft Matter*, 2014, **10**, 4332</u>. The model may or may not have been modified to suit our needs. Complete Equations of Motion are available [here](/docs/EOM.pdf) subject to availing the license-key from us.
 
 https://user-images.githubusercontent.com/94064508/233665035-016f6d65-7cf8-40da-b3b9-097f73d2dfc8.mp4
 

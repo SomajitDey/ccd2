@@ -11,7 +11,7 @@ module parameters
     double precision, protected :: p = 0.25d0       !  Single cell internal hydrostatic pressure coefficient
     double precision, protected :: rc_adh = 0.06d0  ! Adhesion interaction cut-off
     double precision, protected :: rc_rep = 0.04d0  ! Repulsion interaction cut-off
-    double precision, protected :: ovrlp_trshld = dcos(atan(1.d0)) ! Cell-Cell overlap metric threshold
+    double precision, protected :: ovrlp_trshld = 0.06d0 ! Cell-Cell overlap metric threshold
     double precision, protected :: k_adh = 0.0025d0   !  Adhesion interaction strength
     double precision, protected :: k_rep = 10.0d0 !  Adhesion interaction strength
     double precision, protected :: Vo = 0.0004d0       !  Self propulsion of the beads

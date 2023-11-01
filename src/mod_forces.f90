@@ -191,12 +191,12 @@ contains
                                     cm_dy = cm_dy - box*nint(cm_dy/box)
                                     cm_d = hypot(cm_dx, cm_dy)
 
+                                    ! Overlap metric is the projection of bead-bead vector along centre-centre
+                                    !! joining unit vector, scaled by rc_rep to make the metric dimensionless
+                                    overlap = (cm_dx*dx + cm_dy*dy)/(rc_rep*cm_d)
                                     ! i-j joining position vector [dx,dy] makes obtuse angle with the position vector
                                     !! joining the com's [cm_dx,cm_dy] only when i and j penetrate each other's cell.
-                                    !! Negativity of the following dot_product thus indicates cell-cell overlap.
-                                    overlap = (cm_dx*dx + cm_dy*dy)/(r*cm_d) ! Normalized by division
-                                    !TODO: Consider replacing r with rc_rep above. Overlap metric becomes projection
-                                    !! of bead-bead distance along centre-centre joining line, scaled by rc_rep
+                                    !! Negativity of the above dot product thus indicates cell-cell overlap.
 
                                     factor = k_rep*(r - rc_rep)/r
                                     frepx = factor*dx
