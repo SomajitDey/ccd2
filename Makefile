@@ -50,11 +50,12 @@ PACKAGE := ccd
 
 # List of all source files
 SRC_DIR := src
-SRCS := $(notdir $(wildcard $(SRC_DIR)/*.f90))
+CUSTOM_SRC_DIR := custom/src
+SRCS := $(wildcard $(SRC_DIR)/*.f90 $(CUSTOM_SRC_DIR)/*.f90)
 
 # List of all object files
 BUILD_DIR := build
-OBJS := $(addprefix $(BUILD_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
+OBJS := $(addprefix $(BUILD_DIR)/, $(addsuffix .o, $(basename $(notdir $(SRCS)))))
 
 # Include path (to be searched by compiler for *.mod files)
 IP := $(BUILD_DIR)
@@ -65,12 +66,12 @@ else ifeq ($(FC), ifort)
 endif 
 
 # Target executable(s)
-EXECS := $(basename $(filter $(PACKAGE)_%, $(SRCS)))
-EXECS := $(addprefix $(BUILD_DIR)/, $(EXECS))
+EXECS := $(basename $(filter $(BUILD_DIR)/$(PACKAGE)_%, $(OBJS)))
 
 # List of all executable scripts
 SCRIPT_DIR := scripts
-SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*)
+CUSTOM_SCRIPT_DIR := custom/scripts
+SCRIPTS := $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_* $(CUSTOM_SCRIPT_DIR)/$(PACKAGE)_*)
 
 # Path to the DRIVER script that represents the entire package
 DRIVER_TEMPLATE := $(SCRIPT_DIR)/driver.template
@@ -83,7 +84,7 @@ BASHCOMP_TEMPLATE := $(SCRIPT_DIR)/completion.template
 
 # Helpdoc related (https://github.com/somajitdey/helpdoc)
 HELPDOC_CMDS := $(addprefix $(PACKAGE)_, $(SUBCMDS))
-HELPDOC_SRCS := $(wildcard $(SRC_DIR)/$(PACKAGE)_*.f90) $(filter-out %_ %.sh, $(wildcard $(SCRIPT_DIR)/$(PACKAGE)_*))
+HELPDOC_SRCS := $(SRCS) $(filter-out %_ %.sh, $(SCRIPTS))
 
 # Dependency file to be generated using `fortdepend`
 DEPFILE := .dependencies
@@ -98,7 +99,7 @@ BLUE='\e[1;34m'
 NOCOLOR='\e[0m'
 
 # Where to seek prerequisites
-VPATH := $(SRC_DIR)
+VPATH := $(SRC_DIR) $(CUSTOM_SRC_DIR)
 
 # System path where executables would be installed
 # The following must be a system path that exists. `Main` basically means the `Driver`.
@@ -133,7 +134,7 @@ $(BUILD_DIR):
 # Generate fresh dependency file whenever the codebase (sources) is modified or this Makefile changes
 $(DEPFILE): $(SRCS) $(MAKEFILE_LIST) | $(DEPGEN)
 	@echo -e $(BLUE)"make: Generating dependencies:"$(NOCOLOR)
-	$(DEPGEN) --files $(addprefix $(SRC_DIR)/,$(SRCS)) --build $(BUILD_DIR) --ignore-modules $(IMODS) --output $(DEPFILE) --overwrite
+	$(DEPGEN) --files $(SRCS) --build $(BUILD_DIR) --ignore-modules $(IMODS) --output $(DEPFILE) --overwrite
 
 # Define dependencies between object files
 # Note: In fortran, object files are interdependent through .mod files

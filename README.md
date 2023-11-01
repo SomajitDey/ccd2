@@ -109,6 +109,9 @@ ccd -p '<parameterA>=<valueA>' -p '<parameterB>=<valueB>' show_params
 ### Quotes
 To turn off the GROMACS-like quotes at the end of each command, set the `CCD_NO_QUOTES` enviroment variable. Do so if you mostly use `ccd` when offline.
 
+### Extensibility
+User can put her own routines (source code and scripts) in the [custom](/custom/) directory, provided the main sources and executable scripts are named as `ccd_<subcmd>.f90` and `ccd_<subcmd>` respectively.
+
 # Note
 If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited; export OMP_STACKSIZE=500m`.
 If the problem persists, rebuild with `make DEBUG=set` and report @ [issue](https://github.com/PhyBi/Collective-Cell-Dynamics/issues).
@@ -144,8 +147,8 @@ This software is built from a monolithic legacy code. Hence much had and still w
 - [x] building the cell-cell neighborlist and dumping it in trajectory file in the most compressed way for later analysis such as hexatic order parameter
 - [x] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
 - [x] consistency check for parameters while reading them in (src/mod_parameters.f90)
-- [ ] linting
-- [ ] performance oriented profiling and polishing
+- [x] linting
+- [x] performance oriented profiling and polishing
 - [x] enhancing the driver code (`ccd`) as well as the bash-completion script
 - [x] compression and archiving of run results (trajectory etc.). Also provide retrieval and garbage cleaning tools.
 - [x] include -h\|--help for each subcommand using `helpdoc` tool. Detailed [docs](docs/)

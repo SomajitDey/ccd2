@@ -67,10 +67,12 @@ contains
     ! Dumps xy file for any frame/timestep to be consumed by gnuplot
     ! This routine is threadsafe provided different threads use different `fname`s
     ! x and y are passed as arguments to aid threadsafety
-    subroutine gp_xy_dump(fname, boxlen, x, y, title)
+    ! Like x and y, one can optionally provide data for another column (z) for heatmaps, 3D plots etc.
+    subroutine gp_xy_dump(fname, boxlen, x, y, z, title)
         character(len=*), intent(in) :: fname
         double precision, intent(in) :: boxlen
         double precision, dimension(:, :), intent(in) :: x, y
+        double precision, dimension(:, :), intent(in), optional :: z
         character(len=*), intent(in), optional :: title
         integer :: fd, l
 
@@ -79,7 +81,11 @@ contains
         if (present(title)) write (fd, '(a,1x,a)') '#Title:', title
         write (fd, '(a,1x,es23.16)') '#Box:', boxlen
         write (fd, '(a)') '#Column headers:'
-        write (fd, '(a,4x,a,4x,a)') 'x', 'y', 'bead'
+        if (present(z)) then
+            write (fd, '(4(a,4x))') 'x', 'y', 'z', 'bead'
+        else
+            write (fd, '(3(a,4x))') 'x', 'y', 'bead'
+        end if
 
         cells: do l = 1, size(x, 2)
             ! Print comment line indicating start of cell data
@@ -87,7 +93,11 @@ contains
             ! This is to provide the demarcator for gnuplot `index`s
             write (fd, '(//,a,1x,i0)') '#Cell:', l
 
-            call dump_cell_xy(fd, boxlen, x(:, l), y(:, l))
+            if (present(z)) then
+                call dump_cell_xy(fd, boxlen, x(:, l), y(:, l), z(:, l))
+            else
+                call dump_cell_xy(fd, boxlen, x(:, l), y(:, l))
+            end if
 
             ! Print comment line containing: cm_x cm_y cell_id
             write (fd, '(a,1x,es23.16,1x,es23.16,1x,i0)') '#ID@COM', &
@@ -102,11 +112,13 @@ contains
     ! Dumps folded structured XY for the given cellular configuration.
     ! Structured implies addition of dataset discontinuity (single blank record)
     !! and virtual beads at box corners as necessary for cells broken due to folding.
-    subroutine dump_cell_xy(fd, boxlen, x, y)
+    ! Optional z provides datapoints for additional column
+    subroutine dump_cell_xy(fd, boxlen, x, y, z)
         use utilities, only: circular_next
         integer, intent(in) :: fd
         double precision, intent(in) :: boxlen
         double precision, dimension(:), intent(in) :: x, y
+        double precision, dimension(:), intent(in), optional :: z
 
         ! There can be at most 4 sections corresponding to the 4 sim boxes that meet at a corner.
         type(cell_section), dimension(4) :: secs
@@ -178,9 +190,15 @@ contains
                     end if
                 end if inter_arc_virtual
 
-                ! Dump folded XY coordinates for the beads on the arc
+                ! Dump folded XY coordinates, along with Z if provided, for the beads on the arc
                 arc_beads: do i = current_arc%trail, current_arc%lead, -1 ! Note trail and lead have been swapped
-                    write (fd, '(es23.16,1x,es23.16,1x,i0)') x(i) - sec_sig%x*boxlen, y(i) - sec_sig%y*boxlen, i
+                    if (present(z)) then
+                        write (fd, '(3(es23.16,1x),i0)') &
+                            x(i) - sec_sig%x*boxlen, y(i) - sec_sig%y*boxlen, z(i), i
+                    else
+                        write (fd, '(2(es23.16,1x),i0)') &
+                            x(i) - sec_sig%x*boxlen, y(i) - sec_sig%y*boxlen, i
+                    end if
                 end do arc_beads
 
                 last_extrm = current_arc%lead

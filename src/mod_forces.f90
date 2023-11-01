@@ -43,9 +43,9 @@ contains
                 fy(i, l) = k*((l1 - l0)*dy1/l1 - (l2 - l0)*dy2/l2) &
                            + 0.5d0*p*(dx1 + dx2)
             end do
-            
-            cmx(l) = sum(x(:,l))/n
-            cmy(l) = sum(y(:,l))/n
+
+            cmx(l) = sum(x(:, l))/n
+            cmy(l) = sum(y(:, l))/n
         end do
 !$omp end do nowait
 
@@ -106,8 +106,8 @@ contains
             fx(:, l) = f_bead_x(:) - f_bead_x_avg ! Because total intra force for any cell/ring must be zero
             fy(:, l) = f_bead_y(:) - f_bead_y_avg ! e.g. a live amoeba in vacuum can have no net movement
 
-            cmx(l) = sum(x(:,l))/n
-            cmy(l) = sum(y(:,l))/n
+            cmx(l) = sum(x(:, l))/n
+            cmy(l) = sum(y(:, l))/n
         end do
 !$omp end do nowait
 
@@ -183,19 +183,21 @@ contains
                                 if (store_ring_nb) call assert_are_nb_rings(l, q)
 
                                 if (r .lt. rc_rep) then ! Repulsion
-                                    
+
                                     ! Get position vector joining nearest images of c.o.ms of cells q and l
                                     cm_dx = cmx(q) - cmx(l)
                                     cm_dy = cmy(q) - cmy(l)
                                     cm_dx = cm_dx - box*nint(cm_dx/box)
                                     cm_dy = cm_dy - box*nint(cm_dy/box)
                                     cm_d = hypot(cm_dx, cm_dy)
-                                    
+
                                     ! i-j joining position vector [dx,dy] makes obtuse angle with the position vector
                                     !! joining the com's [cm_dx,cm_dy] only when i and j penetrate each other's cell.
                                     !! Negativity of the following dot_product thus indicates cell-cell overlap.
                                     overlap = (cm_dx*dx + cm_dy*dy)/(r*cm_d) ! Normalized by division
-                                    
+                                    !TODO: Consider replacing r with rc_rep above. Overlap metric becomes projection
+                                    !! of bead-bead distance along centre-centre joining line, scaled by rc_rep
+
                                     factor = k_rep*(r - rc_rep)/r
                                     frepx = factor*dx
                                     frepy = factor*dy
@@ -212,7 +214,7 @@ contains
 
                                     f_rpy(i, l) = f_rpy(i, l) + frepy
                                     f_rpy(j, q) = f_rpy(j, q) - frepy
-                                    
+
                                 else ! Adhesion
 
                                     factor = k_adh*(rc_adh - r)/r

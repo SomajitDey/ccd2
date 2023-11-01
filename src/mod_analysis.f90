@@ -37,7 +37,7 @@ contains
 
         ! Write the column headers in analysis dump file
         write (analysis_dump_fd, '(11(a,2x))') &
-            'rec', 'time', 'msd', 'alpha2', 'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
+           'frame', 'time', 'msd', 'alpha2', 'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
     end subroutine setup
 
     ! Initialize

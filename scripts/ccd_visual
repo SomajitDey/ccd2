@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Help:Begin
 # Brief: Plots the given config using gnuplot.
-# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [-L] [<path/file.xy>]
+# Usage: ccd_visual [-t <type>] [-H <index>[@<color>][#]] [-L] [-z [<color0>]:[<color1>]] [<path/file.xy>]
 # <type> = png | pdf | eps | svg
 # <index> = <m>[{:<n>}[:<p>]] # Highlight cell no. <m> to <n> with stride <p>. To highlight all cells use <index> = 0
 # <color> = just name (or #RRGGBB or 0xRRGGBB) of the color you want the highlighted cell to be rendered in
 # Provide the optional '#' if you want solid fill
 # The '-L' option prints cell numbers at the com of the respective cells
+# '-z' option is to be used for plotting heatmaps. <color0> is mapped to min and <color1> to max. Default cyan:magenta.
 # Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
 # such as while accessing wgnuplot.exe from within WSL
 # Default xy file: config.xy
@@ -20,7 +21,7 @@ tmp_plt_script="$(mktemp .tmp.XXXX.plt)" # To hold all the gnuplot commands
 tmp_xy_file="$(mktemp -u .tmp.XXXX.xy)" # To hold the datafile for plotting labels: cm_x cm_y cell_id
 trap "rm -f ${tmp_plt_script} ${tmp_xy_file}" EXIT
 
-while getopts :H:t:Lh opt; do
+while getopts :H:t:Lz:h opt; do
   case "${opt}" in
     H) 
         OPTARG="${OPTARG,,}" # Convert to lowercase
@@ -61,6 +62,11 @@ while getopts :H:t:Lh opt; do
         ;;
     L)
         label='set'
+        ;;
+    z)
+        IFS=':' read hm_clr_0 hm_clr_1 <<< "${OPTARG}"
+        heatmap="set palette defined (0 '${hm_clr_0:=cyan}', 1 '${hm_clr_1:=magenta}'); unset colorbox"
+        plt_cmd="${plt_cmd}, '' using 'x':'y':'z' with filledcurves closed palette" 
         ;;
     h)
         helpdoc ccd_visual
@@ -107,6 +113,7 @@ cat > "${tmp_plt_script}" << EOF
     unset tics
     unset key
     set title '${title}'
+    ${heatmap}
     #set size square
     plot '${xyfile}' using 'x':'y' with line linecolor black linewidth 3 \
         ${plt_cmd}
