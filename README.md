@@ -110,7 +110,7 @@ ccd -p '<parameterA>=<valueA>' -p '<parameterB>=<valueB>' show_params
 To turn off the GROMACS-like quotes at the end of each command, set the `CCD_NO_QUOTES` enviroment variable. Do so if you mostly use `ccd` when offline.
 
 ### Extensibility
-User can put her own routines (source code and scripts) in the [custom](/custom/) directory, provided the main sources and executable scripts are named as `ccd_<subcmd>.f90` and `ccd_<subcmd>` respectively.
+User can put her own routines (source code and scripts) in the [custom](/custom/) directory, provided the main sources and executable scripts are named as `ccd_<subcmd>.f90` and `ccd_<subcmd>` respectively. Such sources will be automatically built (installed) when one [builds](#build) (installs) the current project. Built executables and scripts can be invoked as `ccd <subcmd> [<options>]`.
 
 # Note
 If met with segmentation faults or stack-smashing error, make the stack size unlimited in the Bash session with `ulimit -s unlimited; export OMP_STACKSIZE=500m`.
