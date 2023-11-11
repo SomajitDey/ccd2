@@ -119,7 +119,6 @@ contains
 
         use shared
         use grid_linked_list
-        use ring_nb, only: assert_are_nb_rings, init_ring_nb
 
         logical, intent(in) :: store_ring_nb ! flag to store ring-ring neighborhood info
         integer :: i, j, l, q
@@ -136,8 +135,6 @@ contains
             f_ady(:, l) = 0.0d0
         end do
 !$omp end do nowait
-
-        if (store_ring_nb) call init_ring_nb()
 
         !! Loop Over All Cells !!
 

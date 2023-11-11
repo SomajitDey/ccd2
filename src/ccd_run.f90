@@ -16,7 +16,7 @@ program ccd_run
     use grid_linked_list
     use forces
     use integrator
-    use ring_nb, only: init_ring_nb
+    use ring_nb, only: reset_ring_nb
 
     implicit none
 
@@ -66,6 +66,7 @@ program ccd_run
         traj_dump: if (mod(j1, traj_dump_int) .eq. 0) then
             recnum = recnum + 1
             call traj_write(recnum, timepoint)
+            call reset_ring_nb()
         end if traj_dump
 
         timepoint = timepoint + dt ! Update timepoint

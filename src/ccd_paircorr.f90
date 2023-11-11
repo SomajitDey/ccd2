@@ -5,7 +5,7 @@
 ! --records : Pass range of records to work with. Omit either <begin> or <end> to assume default. E.g. --records=3:4
 ! Help:End
 
-! Ref: Code 8.1 in Allen-Tildesley book >> Computer Simulation of Liquids.
+! Ref: Code 8.1 in Allen and Tildesley's book "Computer Simulation of Liquids".
 
 program ccd_paircorr
     use files

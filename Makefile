@@ -78,7 +78,7 @@ DRIVER_TEMPLATE := $(SCRIPT_DIR)/driver.template
 DRIVER := $(SCRIPT_DIR)/$(PACKAGE)
 
 # Bash Completion script
-SUBCMDS := $(filter-out %_ %.sh, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS))))
+SUBCMDS := $(filter-out %_ %.sh %.py, $(patsubst $(PACKAGE)_%, %, $(notdir $(EXECS) $(SCRIPTS))))
 BASHCOMP := $(PACKAGE)_completion.sh
 BASHCOMP_TEMPLATE := $(SCRIPT_DIR)/completion.template
 

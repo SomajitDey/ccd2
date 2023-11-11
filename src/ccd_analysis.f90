@@ -46,7 +46,7 @@ program ccd_analysis
     call init(begin_rec)
 
     traj_records: do rec_index = begin_rec, end_rec
-        call traj_read(rec_index, timepoint)
+        call traj_read(rec_index, timepoint, cmframe=.true.)
 
         msd = 0.d0
         alpha2 = 0.d0
@@ -62,12 +62,12 @@ program ccd_analysis
             msd = msd + cell_sd_
             alpha2 = alpha2 + cell_sd_*cell_sd_
 
-            call cell_perimetry(ring, cell_area, cell_perim, cell_tension)
+            call cell_perimetry(ring, k, l0, cell_area, cell_perim, cell_tension)
             sum_area = sum_area + cell_area
             tension = tension + cell_tension
             shapeind = shapeind + cell_perim/dsqrt(cell_area)
 
-            call cell_vicsekop(ring, cell_vicsekop_x, cell_vicsekop_y)
+            call cell_vicsekop(ring, c, Vo, cell_vicsekop_x, cell_vicsekop_y)
             vicsekop_x = vicsekop_x + cell_vicsekop_x
             vicsekop_y = vicsekop_y + cell_vicsekop_y
 
@@ -77,14 +77,11 @@ program ccd_analysis
             nemop = nemop + cell_nemop_cos_theta*cell_nemop_cos_theta
         end do cells
 
-        ! Computing msd in centre of mass frame
-        msd = msd - nrings*sys_sd(init_sys_xcm, init_sys_ycm)
-
         ! Non-gaussian parameter: M. Chiang and D. Marenduzzo, EPL, 116, 10 2016
         alpha2 = alpha2*nrings/(2*msd*msd) - 1.d0
         msd = msd/nrings
         shapeind = shapeind/nrings
-        areafrac = sum_area/(box*box)
+        areafrac = (sum_area + bead_area)/(box*box)
         tension = tension/nrings
         vicsekop = hypot(vicsekop_x/nrings, vicsekop_y/nrings)
         nemop = 2*(nemop/nrings) - 1.d0

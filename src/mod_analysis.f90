@@ -1,7 +1,10 @@
-!TODO: parallelize (OMP) later
-! Many subroutines/functions are prefixed with cell_. This means they compute cell properties only.
-! To get average over all cells/rings, use them inside a loop over cells. This is to eliminate
-! multiple loops.
+! This module contains procedures that you can use for your custom (analysis) codes. Consequently,
+!! they are independent, pure/elemental as far as possible. Procedures prefixed with cell_ compute
+!! properties of the given cell/ring only. To get average over all cells, call cell_* procedures 
+!! inside a loop over cells. This eliminates unnecessary use of multiple loops.
+
+!NOTE: When adding new procedures to this module try to make them pure/elemental and independent.
+!! To retain independence, quantities such as beads per cell may be derived from size of x.
 
 module analysis
     use files
@@ -9,7 +12,7 @@ module analysis
     implicit none
     integer :: nrings, nbeads_per_ring
     double precision, dimension(:), allocatable :: init_xcm, init_ycm
-    double precision :: init_sys_xcm, init_sys_ycm
+    double precision :: bead_area
     character(len=*), parameter :: analysis_dump_fname = 'analysis.txt'
     integer :: analysis_dump_fd
 
@@ -30,6 +33,9 @@ contains
         ! Set nrings and nbeads_per_ring info for all other analysis routines to use
         nrings = size(x, 2)
         nbeads_per_ring = size(x, 1)
+        
+        ! Area of all the beads (excluded volume) not taken into account by cell_perimetry().
+        bead_area = (nrings*nbeads_per_ring)*0.5d0*(dacos(-1.d0)*rc_rep*rc_rep/4)
 
         allocate (init_xcm(nrings), init_ycm(nrings))
 
@@ -43,16 +49,11 @@ contains
     ! Initialize
     subroutine init(begin_rec)
         integer, intent(in) :: begin_rec
-        integer :: ring
 
-        call traj_read(begin_rec, timepoint)
+        call traj_read(begin_rec, timepoint, cmframe=.true.)
 
-        do ring = 1, nrings
-            call cell_cm(ring, init_xcm(ring), init_ycm(ring))
-        end do
-
-        init_sys_xcm = sum(x)/size(x)
-        init_sys_ycm = sum(y)/size(y)
+        init_xcm = cmx
+        init_ycm = cmy
     end subroutine init
 
     ! Dump analysis results
@@ -64,45 +65,27 @@ contains
             rec_index, time, msd, alpha2, shapeind, hexop1, hexop2, vicsekop, areafrac, tension, nemop
     end subroutine dump
 
-    ! Outputs global/system centre of mass square deviation
-    double precision function sys_sd(init_sys_xcm, init_sys_ycm)
-        double precision, intent(in) :: init_sys_xcm, init_sys_ycm
-        double precision :: sys_xcm_dev, sys_ycm_dev
-
-        sys_xcm_dev = sum(x)/size(x) - init_sys_xcm
-        sys_ycm_dev = sum(y)/size(y) - init_sys_ycm
-
-        sys_sd = (sys_xcm_dev*sys_xcm_dev) + (sys_ycm_dev*sys_ycm_dev)
-    end function sys_sd
-
-    ! Takes cell/ring index and outputs cm coordinates
-    subroutine cell_cm(ring, xcm, ycm)
-        integer, intent(in) :: ring
-        double precision, intent(out) :: xcm, ycm
-
-        xcm = sum(x(:, ring))/nbeads_per_ring
-        ycm = sum(y(:, ring))/nbeads_per_ring
-    end subroutine cell_cm
-
     ! Takes cell/ring index and outputs square deviation (of cm) for that cell, for the current state
-    double precision function cell_sd(ring)
+    elemental double precision function cell_sd(ring)
         integer, intent(in) :: ring
-        double precision :: xcm, ycm, dxcm, dycm
+        double precision :: dxcm, dycm
 
-        call cell_cm(ring, xcm, ycm)
-        dxcm = init_xcm(ring) - xcm
-        dycm = init_ycm(ring) - ycm
+        dxcm = init_xcm(ring) - cmx(ring)
+        dycm = init_ycm(ring) - cmy(ring)
         cell_sd = dxcm*dxcm + dycm*dycm
     end function cell_sd
 
-    ! Takes cell/ring index and outputs perimetry info
-    subroutine cell_perimetry(ring, area, perimeter, tension)
+    ! Takes cell/ring index as well as k and l0. Outputs perimetry info
+    pure subroutine cell_perimetry(ring, k, l0, area, perimeter, tension)
         use utilities, only: circular_next
         integer, intent(in) :: ring
+        double precision, intent(in) :: k, l0 ! Explicit intent in for retaining independence of this procedure
         double precision, intent(out) :: area, perimeter, tension
-        integer :: this_bead, next_bead
+        integer :: this_bead, next_bead, nbeads_per_ring
         double precision :: x_this_bead, y_this_bead, x_next_bead, y_next_bead, l
 
+        nbeads_per_ring = size(x, 1) ! Independent derivation based on x without depending on setup() call
+        
         area = 0.0d0
         perimeter = 0.0d0
         tension = 0.0d0
@@ -127,13 +110,17 @@ contains
     end subroutine cell_perimetry
 
     ! Takes cell/ring index and outputs its major and minor axis unit vectors
-    subroutine cell_shape(ring, major_axis, minor_axis)
+    pure subroutine cell_shape(ring, major_axis, minor_axis)
         use utilities, only: eigen_2x2_mat
         integer, intent(in) :: ring
         double precision, dimension(:), intent(out) :: major_axis, minor_axis
         double precision :: xcm, ycm, shape_tensor(2, 2), eval1, eval2, evec1(2), evec2(2)
+        integer :: nbeads_per_ring
 
-        call cell_cm(ring, xcm, ycm)
+        nbeads_per_ring = size(x, 1) ! Independent derivation based on x without depending on setup() call
+
+        xcm = cmx(ring)
+        ycm = cmy(ring)
         shape_tensor(1, 1) = sum((x(:, ring) - xcm)*(x(:, ring) - xcm))/nbeads_per_ring
         shape_tensor(2, 2) = sum((y(:, ring) - ycm)*(y(:, ring) - ycm))/nbeads_per_ring
         shape_tensor(2, 1) = sum((y(:, ring) - ycm)*(x(:, ring) - xcm))/nbeads_per_ring
@@ -151,10 +138,14 @@ contains
     end subroutine cell_shape
 
     ! Takes cell/ring index and outputs its vicsek order parameter contribution
-    subroutine cell_vicsekop(ring, vopx, vopy)
+    pure subroutine cell_vicsekop(ring, c, Vo, vopx, vopy)
         integer, intent(in) :: ring
+        double precision, intent(in) :: c, Vo ! Explicit intent in for retaining independence of this procedure
         double precision, intent(out) :: vopx, vopy
         double precision :: norm
+        integer :: nbeads_per_ring
+
+        nbeads_per_ring = size(x, 1) ! Independent derivation based on x without depending on setup() call
 
         vopx = sum((fx(:, ring) + f_adx(:, ring) + f_rpx(:, ring))/c + Vo*mx(:, ring))/nbeads_per_ring
         vopy = sum((fy(:, ring) + f_ady(:, ring) + f_rpy(:, ring))/c + Vo*my(:, ring))/nbeads_per_ring
@@ -170,10 +161,10 @@ contains
     ! Due to triangle law of complex numbers hexop1 and hexop2 may differ a lot.
     ! hexop1 seems more acceptable to us.
     subroutine psi_6(nrings, hexop1, hexop2)
-        use ring_nb, only: are_nb_rings
+        use ring_nb, only: index_to_pair, ring_nb_io
         integer, intent(in) :: nrings ! Number of rings/cells
         double precision, intent(out) :: hexop1, hexop2
-        integer :: ring1, ring2 ! ring/cell index
+        integer :: i, valu, ring1, ring2
         double precision :: re, im, xcm_ring1, ycm_ring1, xcm_ring2, ycm_ring2
         complex, dimension(nrings) :: hop_z_sum ! Stores the complex sum for every cell/ring
         integer, dimension(nrings) :: num_nb ! Number of nearest neighbors
@@ -182,20 +173,23 @@ contains
         hop_z_sum = (0.0, 0.0)
         num_nb = 0
 
-        do ring1 = 1, nrings - 1
-            call cell_cm(ring1, xcm_ring1, ycm_ring1)
-            do ring2 = ring1 + 1, nrings
-                if (are_nb_rings(ring1, ring2)) then
-                    call cell_cm(ring2, xcm_ring2, ycm_ring2)
-                    re = xcm_ring2 - xcm_ring1
+        ! Looping over neighboring pairs, i.e. elements of ring_nb_io, is faster than loop over all possible pairs
+        !! and asking if they are are_nb_rings()
+        do i = 1, size(ring_nb_io)
+            valu = ring_nb_io(i)
+            if (valu == 0) exit
+            call index_to_pair(valu, ring1, ring2)
+            xcm_ring1 = cmx(ring1)
+            ycm_ring1 = cmy(ring1)
+            xcm_ring2 = cmx(ring2)
+            ycm_ring2 = cmy(ring2)
+            re = xcm_ring2 - xcm_ring1
                     im = ycm_ring2 - ycm_ring1
                     z = cmplx(re, im)**6; z = z/abs(z) ! gives e(i6theta)
                     hop_z_sum(ring1) = hop_z_sum(ring1) + z
                     num_nb(ring1) = num_nb(ring1) + 1
                     hop_z_sum(ring2) = hop_z_sum(ring2) + conjg(z)
                     num_nb(ring2) = num_nb(ring2) + 1
-                end if
-            end do
         end do
 
         hexop1 = sum(abs(hop_z_sum/num_nb))/nrings

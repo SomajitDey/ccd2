@@ -1,5 +1,5 @@
 module state_vars
-    use ring_nb, only: ring_nb_io, ring_nb_yesno_packed
+    use ring_nb, only: assert_are_nb_rings, are_nb_rings
     implicit none
     public
     double precision :: box
