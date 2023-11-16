@@ -31,8 +31,8 @@ contains
         if (alloc_stat /= 0) error stop 'Fatal: Problem while allocating ring_nb'
         
         ! One-time intialiation
-        var = 0
-        ring_nb_pairs = var
+        ring_nb_pairs = 0
+        var = 1
         ! Loop over all possible pairs to fix index_to_pair_ref array once and for all
         do l = 1, m-1
             do q = l+1, m
