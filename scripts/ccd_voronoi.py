@@ -1,38 +1,35 @@
 #!/usr/bin/env python3
-# Creates Periodic Voronoi tesellations from a given set of points
+# Brief: Creates Periodic Voronoi tesellations from a given set of points. Stdout: neighboring pairs
 # This uses the Python module Freud, which in turn uses Voro++. Freud is multithreaded.
+# Usage: ccd_voronoi.py <box> <pts_in_file_path> <cells_out_file_path>
+# <pts_in_file_path> : Path to input file containing xy coordinate data of the point set.
+# <cells_out_file_path> : Path to output file containing xy data of the vertices of Voronoi cells (polytopes).
+# Note: Vertices are output in unwrapped form (i.e. some may lie outside the box)
+# Note: This script is to be called from within mod_voronoi. Check it out for details on the API.
 
 import sys
 import numpy as np
 import freud
 
-pts_in = 'points.in' # Input file containing XY coordinates of the points
-cells_out = 'cells.out' # Output file containing Voronoi cell vertices
-hexop_out = 'psi6.out' # Output file containing psi6 (hexatic order parameter) for each voronoi cell
+boxlen = float(sys.argv[1]) # Access box length from first command-line argument
+pts_in = sys.argv[2] # Input file containing XY coordinates of the points
+cells_out = sys.argv[3] # Output file containing Voronoi cell vertices
 
 points = np.loadtxt(pts_in) # Loading the input points (2D)
-npoints = np.size(points, 0) # Number of points
-z = np.zeros((npoints, 1)) # Prepping null z coordinates for feeding to Freud
-points = np.hstack((points, z)) # Turn input 2D points into 3D with z=0
-
-boxlen = float(sys.argv[1]) # Access box length from first command-line argument
 
 # Periodic Voronoi construction using Freud
 box = freud.box.Box.square(boxlen)
 voro = freud.locality.Voronoi()
 voro.compute((box, points))
 cells = voro.polytopes
-cells = np.delete(cells, -1, 2) # Delete the extraneous z coordinates
 
 # Output Voronoi cell vertices. Cells are separated by a blank line.
 f = open(cells_out, 'w')
 for cell in cells:
     np.savetxt(f, cell)
-    f.write("\n") # Blank line to separate cells
+    f.write("-\n") # Blank line to separate cells
 f.close()
 
-# Compute hexatic order
-nlist = voro.nlist
-hex_order = freud.order.Hexatic(k=6)
-hex_order.compute(system=(box, points), neighbors=nlist)
-np.savetxt(hexop_out, hex_order.particle_order)
+# Output neighborlist
+for i, j in voro.nlist[:]:
+    print(i+1, j+1) # +1 to change 0-based array to 1-based (because cells are numbered 1 to m) 

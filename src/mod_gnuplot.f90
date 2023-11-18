@@ -1,11 +1,15 @@
-! This module holds code dedicated to visualization of the 2D configurations in gnuplot.
-! This is required to create special XY datafile (containing section based discontinuities and virtual beads
-!! at box corners) so that gnuplot can handle cells that are broken into pieces (i.e. sections) due to folding
+! This module holds code dedicated to visualization of a periodic system of polygonal cells in gnuplot.
+! It creates a special XY datafile containing section based discontinuities and virtual beads at box edges
+!! and corners so that gnuplot can handle cells that are broken into pieces (i.e. sections) due to folding
 !! under PBC. Gnuplot should be able to produce solid fills and line plots of such cells from the datafile.
 
-!!!!!! Glossary to understand concepts mentioned below. All w.r.t a single cell !!!!!!
+!!!!!! Glossary !!!!!!
 
-!**Arc : A continuous segment of the cellular periphery, comprised of consecutive beads
+!**Cell : A polygon.
+
+!**Bead : Any vertex of a polygon.
+
+!**Arc : A continuous segment of the cellular periphery, comprised of consecutive beads.
 
 !**Lead : First bead in an arc when traversing the arc in ascending order of bead serial (i.e. anticlockwise).
 
@@ -14,20 +18,22 @@
 !**Section : An isolated part of the cell. Cells unbroken by folding under PBC have only 1 section which is
 ! confined by a single arc consisting of all the beads in the cell. Cells broken by folding have multiple
 ! sections. Each such section is an area enclosed by one or more arcs and one or more edges of the sim(ulation)
-! box. If the section is confined by arc(s) and one box edge only, gnuplot can create the section from the arc(s)
-! alone by creating a closed polygon from the beads. However, if the section contains two box edges, gnuplot also
-! needs the vertex of those two edges along with the arc(s) to form the section polygon.
+! box. 
 
-!**Virtual bead at a box corner : The vertex mentioned above. No bead may actually be positioned there. Yet we need
-! to dump the vertex/corner position in the datafile for gnuplot. Hence, virtual.
+!**Virtual bead : To plot a section confined by arc(s) and a box edge, gnuplot needs to plot virtual beads at
+! points where the cell would intersect the box edge, if the cell was continuous (i.e. before being folded under PBC).
+! This is because beads at the extremeties of the confining arc(s) in a section may not lie on the box edge(s).
+
+!**Virtual bead at a corner of the box : To plot a section confined by arc(s) and two intersecting (perpendicular) box
+! edges gnuplot needs to plot a virtual bead at the corner of the box formed by the two intersecting edges.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 module gnuplot
     implicit none
-    private ! Most of the things here are only for the use of the public components below
+    private ! Most of the things here are only for use by the public components below
 
-    public :: gp_xy_dump
+    public :: gp_xy_dump, dump_cell_xy
 
     ! Type containing an integer pair or 2-tuple
     type int_pair
@@ -111,14 +117,15 @@ contains
 
     ! Dumps folded structured XY for the given cellular configuration.
     ! Structured implies addition of dataset discontinuity (single blank record)
-    !! and virtual beads at box corners as necessary for cells broken due to folding.
-    ! Optional z provides datapoints for additional column
+    !! and virtual beads, as necessary for plotting cells broken due to folding.
+    ! Optional z provides datapoints for additional column.
     subroutine dump_cell_xy(fd, boxlen, x, y, z)
         use utilities, only: circular_next
         integer, intent(in) :: fd
         double precision, intent(in) :: boxlen
         double precision, dimension(:), intent(in) :: x, y
         double precision, dimension(:), intent(in), optional :: z
+        double precision, dimension(size(x)) :: xf, yf ! Hold FOLDED x and y
 
         ! There can be at most 4 sections corresponding to the 4 sim boxes that meet at a corner.
         type(cell_section), dimension(4) :: secs
@@ -139,6 +146,9 @@ contains
         ! Looping over beads in ascending order
         cell_beads: do i = 1, size(x)
             sec_sig = int_pair(floor(x(i)/boxlen), floor(y(i)/boxlen))
+            xf(i) = x(i) - sec_sig%x*boxlen
+            yf(i) = y(i) - sec_sig%y*boxlen
+
             if (last_sec > 0) then
                 if (sec_sig == secs(last_sec)%sig) then
                     current_arc%trail = i
@@ -162,7 +172,7 @@ contains
         ! Structured dumping of folded coordinates:
         !! Section dumps are separated by a single blank record to signify discontinuity. Gnuplot must
         !! not join separate sections otherwise line plots and solid fills will be messed up.
-        !! Mainly to aid solid fills, virtual beads at box corners are inserted as and when needed.
+        !! Virtual beads are inserted as and when needed.
 
         ! Loop over sections
         sections: do last_sec = 1, nsecs
@@ -181,23 +191,19 @@ contains
             arcs: do
                 if (.not. associated(current_arc)) exit arcs
 
-                ! Dump virtual bead at a sim box corner if needed
+                ! Dump virtual beads
                 inter_arc_virtual: if (last_extrm /= 0) then
-                    if (need_virtual(x(last_extrm), y(last_extrm), x(current_arc%trail), y(current_arc%trail), &
-                                     boxlen, vx, vy)) then
-                        write (fd, '(a)') '#Virtual bead follows:'
-                        write (fd, '(es23.16,1x,es23.16)') vx, vy
-                    end if
+                    call dump_virtual(fd, xf, yf, boxlen, last_extrm, current_arc%trail)
                 end if inter_arc_virtual
 
                 ! Dump folded XY coordinates, along with Z if provided, for the beads on the arc
                 arc_beads: do i = current_arc%trail, current_arc%lead, -1 ! Note trail and lead have been swapped
                     if (present(z)) then
                         write (fd, '(3(es23.16,1x),i0)') &
-                            x(i) - sec_sig%x*boxlen, y(i) - sec_sig%y*boxlen, z(i), i
+                            xf(i), yf(i), z(i), i
                     else
                         write (fd, '(2(es23.16,1x),i0)') &
-                            x(i) - sec_sig%x*boxlen, y(i) - sec_sig%y*boxlen, i
+                            xf(i), yf(i), i
                     end if
                 end do arc_beads
 
@@ -205,14 +211,11 @@ contains
                 current_arc => current_arc%next
             end do arcs
 
-            ! Dump virtual bead at a sim box corner if needed
+            ! Dump virtual beads, if needed
             section_virtual: if (nsecs > 1) then ! Doesn't need virtual bead for unbroken cells (i.e. nsecs = 1)
                 if (last_extrm /= circular_next(sec_extrm, +1, size(x))) then
                     ! No discontinuity (no need for virtual bead at corner) between beads circular_next to each other
-                    if (need_virtual(x(last_extrm), y(last_extrm), x(sec_extrm), y(sec_extrm), boxlen, vx, vy)) then
-                        write (fd, '(a)') '#Virtual bead follows:'
-                        write (fd, '(es23.16,1x,es23.16)') vx, vy
-                    end if
+                    call dump_virtual(fd, xf, yf, boxlen, last_extrm, sec_extrm)
                 end if
             end if section_virtual
 
@@ -233,34 +236,26 @@ contains
     !! If one of the edges of the arc (say A) meets X1(X2) axis and the other edge (say B) meets Y1(Y2) axis,
     !! the desired corner is at the intersection of the two axes.
 
-    ! The following function takes as input the coordinates of A and B (order doesn't matter).
+    ! The following function takes as input FOLDED coordinates of A and B (order doesn't matter).
     ! Also outputs the desired corner coordinates.
 
-    logical function need_virtual(xa, ya, xb, yb, boxlen, corner_x, corner_y)
+    logical function need_virtual_corner(xa, ya, xb, yb, boxlen, corner_x, corner_y)
         double precision, intent(in) :: xa, ya, xb, yb, boxlen
         double precision, intent(out) :: corner_x, corner_y
-
-        double precision :: xa_fold, ya_fold, xb_fold, yb_fold
         integer :: a_axis, b_axis ! Holds reference to the bead a(b)'s nearest X or Y axis
         ! Reference to the axes is defined as [1, 2, 3, 4] = [Y1, X1, Y2, X2]; e.g. 1 means Y1
         integer :: corner_sig ! Holds unique signature of the desired corner
 
-        ! Fold the input coordinates
-        xa_fold = modulo(xa, boxlen)
-        ya_fold = modulo(ya, boxlen)
-        xb_fold = modulo(xb, boxlen)
-        yb_fold = modulo(yb, boxlen)
-
-        a_axis = minloc(dabs([xa_fold, ya_fold, boxlen - xa_fold, boxlen - ya_fold]), DIM=1)
-        b_axis = minloc(dabs([xb_fold, yb_fold, boxlen - xb_fold, boxlen - yb_fold]), DIM=1)
+        a_axis = minloc([xa, ya, boxlen - xa, boxlen - ya], DIM=1)
+        b_axis = minloc([xb, yb, boxlen - xb, boxlen - yb], DIM=1)
 
         ! Ref. to X axes are even and that to Y are odd. Only even+odd gives odd, not odd+odd or even+even.
-        need_virtual = mod(a_axis + b_axis, 2) /= 0
+        need_virtual_corner = mod(a_axis + b_axis, 2) /= 0
         ! True only if one of lead and trail is nearest to X and the other to Y axis.
         ! Otherwise, they wouldn't need virtual bead at all.
 
         ! Determine which corner of the box is appropriate to be inserted as a virtual bead, if needed
-        if (need_virtual) then
+        if (need_virtual_corner) then
 
             ! The following product gives a unique value for each of the 4 corners of sim box:
             corner_sig = a_axis*b_axis
@@ -281,7 +276,70 @@ contains
             end select get_corner
 
         end if
-    end function need_virtual
+    end function need_virtual_corner
+
+    ! Suppose A and B are consecutive vertices of a polygon. A lies within the box. But B lies outside the box.
+    !! We then need the intersection point of AB with the box edge as a virtual bead.
+    ! Takes as input FOLDED coordinates of A and B (order matters). Outputs virtual bead coordinates.
+    ! \lambda.abx + xa = bead_x ; \lambda.aby + ya = bead_y, where \lambda is a positive fraction.
+    ! One of bead_x and bead_y must be either 0 or boxlen, as bead is on an edge.
+    subroutine virtual_bead(xa, ya, xb, yb, boxlen, bead_x, bead_y)
+        double precision, intent(in) :: xa, ya, xb, yb, boxlen
+        double precision, intent(out) :: bead_x, bead_y
+        double precision :: abx, aby, lambda
+
+        ! Coordinates of AB vector
+        abx = xb - xa
+        aby = yb - ya
+        abx = abx - boxlen*nint(abx/boxlen)
+        aby = aby - boxlen*nint(aby/boxlen)
+
+        ! Assume bead_x = boxlen if abx > 0, or 0 if abx < 0
+        if (abx > 0.d0) then
+            bead_x = boxlen
+        else
+            bead_x = 0.d0
+        end if
+
+        ! Get bead_y using that assumption
+        lambda = (bead_x - xa)/abx
+        bead_y = lambda*aby + ya
+
+        if ((bead_y > boxlen) .or. (bead_y < 0.d0)) then ! Assumption must be wrong
+            ! Instead, bead_y must be boxlen if aby > 0, or 0 if aby < 0
+            if (aby > 0.d0) then
+                bead_y = boxlen
+            else
+                bead_y = 0.d0
+            end if
+            lambda = (bead_y - ya)/aby
+            bead_x = lambda*abx + xa
+        end if
+    end subroutine virtual_bead
+
+    ! Dump virtual beads, given the bead indices at the extremeties of a confining arc(s) of a section. 
+    ! Input: Output file descriptor, folded x y arrays, boxlength and indices of beads (A and B) between which
+    ! we need the virtual beads. A and B beads are at extremeties, i.e. Bead A - 1 and B+1 are not in same section
+    ! as A and B.
+    subroutine dump_virtual(fd, x, y, boxlen, a, b)
+        use utilities, only: circular_next
+        integer, intent(in) :: fd, a, b
+        double precision, dimension(:), intent(in) :: x, y
+        double precision, intent(in) :: boxlen
+        integer :: a_prev, b_next
+        double precision :: avx, avy, bvx, bvy, cvx, cvy
+
+        a_prev = circular_next(a, -1, size(x))
+        b_next = circular_next(b, +1, size(x))
+
+        call virtual_bead(x(a), y(a), x(a_prev), y(a_prev), boxlen, avx, avy)
+        call virtual_bead(x(b), y(b), x(b_next), y(b_next), boxlen, bvx, bvy)
+        write (fd, '(a)') '#Virtual beads follow, signified by vb in bead number'
+        write (fd, '(es23.16,1x,es23.16,1x,a)') avx, avy, 'vb'
+        if (need_virtual_corner(avx, avy, bvx, bvy, boxlen, cvx, cvy)) &
+            write (fd, '(es23.16,1x,es23.16,1x,a)') cvx, cvy, 'vb'
+        write (fd, '(es23.16,1x,es23.16,1x,a)') bvx, bvy, 'vb'
+    end subroutine dump_virtual
 
     ! Defining equivalence between a pair of int_pair's
     logical elemental function int_pair_equival(val1, val2)

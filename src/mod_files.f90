@@ -69,10 +69,10 @@ contains
         f_rpy = dble(compressed_fp_for_io(:, :, 8))
         f_adx = dble(compressed_fp_for_io(:, :, 9))
         f_ady = dble(compressed_fp_for_io(:, :, 10))
-        
+
         nbeads_per_cell = size(x, 1)
         ncells = size(x, 2)
-        
+
         do ring = 1, ncells
             cmx(ring) = sum(x(:, ring))/nbeads_per_cell
             cmy(ring) = sum(y(:, ring))/nbeads_per_cell
@@ -81,7 +81,7 @@ contains
         m_norm = hypot(mx, my)
         mx = mx/m_norm
         my = my/m_norm
-        
+
         if (present(cmframe) .and. cmframe) then
             gcmx = sum(cmx)/ncells
             gcmy = sum(cmy)/ncells

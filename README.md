@@ -18,6 +18,7 @@ Work in progress. Check [TODO](#TODO) list below.
 - [ffmpeg](https://command-not-found.com/ffmpeg) for movie generation
 - [jq](https://command-not-found.com/jq), [curl](https://command-not-found.com/curl) and [sponge](https://command-not-found.com/sponge) for quotes
 - [helpdoc](https://github.com/somajitdey/helpdoc) for showing help/usage documentation
+- [freud](https://freud.readthedocs.io/en/latest/gettingstarted/installation.html) for constructing periodic Voronoi tesselations. It may be installed with: `pip3 install freud-analysis`. (freud uses [Voro++](https://github.com/chr1shr/voro), a C++ library, with which we may replace freud later on).
 
 # Build
 - Install, if non-existent, the above [dependencies](#dependencies) first

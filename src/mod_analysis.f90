@@ -1,6 +1,6 @@
 ! This module contains procedures that you can use for your custom (analysis) codes. Consequently,
 !! they are independent, pure/elemental as far as possible. Procedures prefixed with cell_ compute
-!! properties of the given cell/ring only. To get average over all cells, call cell_* procedures 
+!! properties of the given cell/ring only. To get average over all cells, call cell_* procedures
 !! inside a loop over cells. This eliminates unnecessary use of multiple loops.
 
 !NOTE: When adding new procedures to this module try to make them pure/elemental and independent.
@@ -33,7 +33,7 @@ contains
         ! Set nrings and nbeads_per_ring info for all other analysis routines to use
         nrings = size(x, 2)
         nbeads_per_ring = size(x, 1)
-        
+
         ! Area of all the beads (excluded volume) not taken into account by cell_perimetry().
         bead_area = (nrings*nbeads_per_ring)*0.5d0*(dacos(-1.d0)*rc_rep*rc_rep/4)
 
@@ -42,8 +42,8 @@ contains
         open (newunit=analysis_dump_fd, file=analysis_dump_fname, status='replace')
 
         ! Write the column headers in analysis dump file
-        write (analysis_dump_fd, '(11(a,2x))') &
-           'frame', 'time', 'msd', 'alpha2', 'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
+        write (analysis_dump_fd, '(11(a,2x))') 'frame', 'time', 'msd', 'alpha2', &
+            'shapeind', 'hexop1', 'hexop2', 'vicsekop', 'areafrac', 'tension', 'nemop'
     end subroutine setup
 
     ! Initialize
@@ -85,7 +85,7 @@ contains
         double precision :: x_this_bead, y_this_bead, x_next_bead, y_next_bead, l
 
         nbeads_per_ring = size(x, 1) ! Independent derivation based on x without depending on setup() call
-        
+
         area = 0.0d0
         perimeter = 0.0d0
         tension = 0.0d0
@@ -184,12 +184,12 @@ contains
             xcm_ring2 = cmx(ring2)
             ycm_ring2 = cmy(ring2)
             re = xcm_ring2 - xcm_ring1
-                    im = ycm_ring2 - ycm_ring1
-                    z = cmplx(re, im)**6; z = z/abs(z) ! gives e(i6theta)
-                    hop_z_sum(ring1) = hop_z_sum(ring1) + z
-                    num_nb(ring1) = num_nb(ring1) + 1
-                    hop_z_sum(ring2) = hop_z_sum(ring2) + conjg(z)
-                    num_nb(ring2) = num_nb(ring2) + 1
+            im = ycm_ring2 - ycm_ring1
+            z = cmplx(re, im)**6; z = z/abs(z) ! gives e(i6theta)
+            hop_z_sum(ring1) = hop_z_sum(ring1) + z
+            num_nb(ring1) = num_nb(ring1) + 1
+            hop_z_sum(ring2) = hop_z_sum(ring2) + conjg(z)
+            num_nb(ring2) = num_nb(ring2) + 1
         end do
 
         hexop1 = sum(abs(hop_z_sum/num_nb))/nrings

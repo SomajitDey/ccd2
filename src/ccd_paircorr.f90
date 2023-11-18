@@ -102,6 +102,6 @@ program ccd_paircorr
     call close_traj()
     close (fd)
     write (err_fd, '(a,1x,es23.16,1x,a,1x,i0,1x,a,1x,i0,":",i0)') &
-        'Used: dr =', dr, 'nbins =', nbins, 'records =', begin_rec,end_rec
+        'Used: dr =', dr, 'nbins =', nbins, 'records =', begin_rec, end_rec
     write (err_fd, '(a)') 'Pair correlation histogram dumped at '//fname
 end program ccd_paircorr

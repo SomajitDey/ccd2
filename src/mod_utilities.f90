@@ -97,17 +97,45 @@ contains
         divided_becomes_remainder = mod(divided_becomes_remainder, divisor)
     end subroutine div_rem
 
+    ! Execute given command line and store its stdout in given string. This operation is atomic.
+    !! Optional arg timeout provides wait timeout in seconds for acquiring the lock towards atomicity.
+    !! exitstat if present contains exitstatus of cmd.
+    subroutine execute(cmd, stdout, exitstat, timeout)
+        character(len=*), intent(in) :: cmd
+        character(len=*), intent(out) :: stdout
+        integer, intent(out), optional :: exitstat
+        integer, intent(in), optional :: timeout
+        character(len=*), parameter :: tmpfile = 'ccd.mod_utilities.execute.buffer.tmp'
+        integer :: tmpunit, ios, tmout, sec
+
+        if (present(timeout)) then
+            tmout = timeout
+        else
+            tmout = 5
+        end if
+
+        ! Exclusive lock on tmpfile. Block until acquired. Hence, atomic.
+        blocking_loop: do sec = 1, tmout
+            open (newunit=tmpunit, file=tmpfile, status='new', action='read', iostat=ios)
+            if (ios == 0) exit blocking_loop
+            call execute_command_line('sleep 1s')
+        end do blocking_loop
+        if (ios /= 0) error stop 'Fatal: Failed to acquire lock on '//tmpfile//'. Delete it to retry.'
+
+        call execute_command_line(cmd//" 2>/dev/null >"//tmpfile, exitstat=ios)
+
+        if (present(exitstat)) exitstat = ios
+
+        read (tmpunit, '(a)', iostat=ios) stdout
+        if (ios /= 0) stdout = ''
+        close (tmpunit, status='delete')
+    end subroutine execute
+
     ! Outputs the sha1 hash of any given file
     character(len=40) function sha1(fname)
         character(len=*), intent(in) :: fname
-        character(len=*), parameter :: tmpfile = '.sha1.tmp'
-        integer :: tmpunit, ios
 
-        call execute_command_line("sha1sum "//fname//" 2>/dev/null > "//tmpfile)
-        open (newunit=tmpunit, file=tmpfile, status='old', action='read')
-        read (tmpunit, '(a)', iostat=ios) sha1
-        if (ios /= 0) sha1 = ''
-        close (tmpunit, status='delete')
+        call execute("sha1sum "//fname, sha1)
     end function sha1
 
     function int_to_char(intarg)
@@ -115,6 +143,14 @@ contains
         character(len=floor(log10(real(intarg))) + 1) :: int_to_char
         write (int_to_char, '(i0)') intarg
     end function int_to_char
+
+    ! Gives a unique tmpfile path in the given directory. Behaves similar to `mktemp -u --tmpdir=<dir>`.
+    function mktemp(dir)
+        character(len=*), intent(in) :: dir
+        character(len=len(dir) + len('/tmp.XXXXXXXXXX')) :: mktemp
+
+        call execute("mktemp -u -p "//dir, mktemp)
+    end function mktemp
 
     ! Returns true if `flag` is present as a command line flag/option/argument
     ! Example: cmd_line_flag('--help')
