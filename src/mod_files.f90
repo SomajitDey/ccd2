@@ -29,7 +29,6 @@ module files
 contains
 
     subroutine open_traj(read_or_write, old_or_replace)
-        use ring_nb, only: ring_nb_io
         character(len=*), intent(in) :: read_or_write, old_or_replace
         integer :: reclen, io_stat, alloc_stat
 
@@ -45,7 +44,7 @@ contains
 
     ! The optional boolean arg `cmframe` asks traj_read to pass coordinates in com frame. Default: .false.
     subroutine traj_read(recnum, timepoint, cmframe)
-        use ring_nb, only: ring_nb_io, unpack_ring_nb
+        use ring_nb, only: unpack_ring_nb
         integer, intent(in) :: recnum
         logical, intent(in), optional :: cmframe
         real, intent(out) :: timepoint
@@ -110,7 +109,7 @@ contains
     end subroutine threadsafe_traj_read_xy_only
 
     subroutine traj_write(recnum, timepoint)
-        use ring_nb, only: pack_ring_nb, ring_nb_io
+        use ring_nb, only: pack_ring_nb
         integer, intent(in) :: recnum
         real, intent(in) :: timepoint
         integer :: io_stat

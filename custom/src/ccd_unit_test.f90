@@ -4,7 +4,7 @@ program unit_test
     use utilities, only: cmd_line_opt, mktemp
     use files, only: cpt_read, open_traj, traj_read
     use state_vars
-    use ring_nb, only: ring_nb_io
+    use ring_nb, only: coord_num
     use voronoi
     implicit none
 
@@ -17,5 +17,6 @@ program unit_test
     call cpt_read(timepoint, recnum, pending_steps, current_step, params_hash)
     call open_traj('read', 'old')
     call traj_read(record, timepoint)
-    call periodic_voronoi(cmx, cmy, box, ring_nb_io, 'vor.xy')
+    call periodic_voronoi(cmx, cmy, box, 'vor.xy')
+    print*, coord_num
 end program unit_test

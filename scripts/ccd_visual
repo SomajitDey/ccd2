@@ -8,8 +8,9 @@
 # Provide the optional '#' if you want solid fill
 # The '-L' option prints cell numbers at the com of the respective cells
 # '-z' option is to be used for plotting heatmaps. <color0> is mapped to min and <color1> to max. Default cyan:magenta.
-# Env: GNUPLOT_PATH environment variable supplies non-default gnuplot installation paths
-# such as while accessing wgnuplot.exe from within WSL
+# Environment Variables: 
+# GNUPLOT_PATH - supplies non-default gnuplot installation paths, e.g. path/to/wgnuplot.exe while using WSL in Windows.
+# CCD_NO_CB - if set, hides colorbox in heatmaps.
 # Default xy file: config.xy
 # Help:End
 
@@ -65,7 +66,7 @@ while getopts :H:t:Lz:h opt; do
         ;;
     z)
         IFS=':' read hm_clr_0 hm_clr_1 <<< "${OPTARG}"
-        heatmap="set palette defined (0 '${hm_clr_0:=cyan}', 1 '${hm_clr_1:=magenta}'); unset colorbox"
+        heatmap="set palette defined (0 '${hm_clr_0:=cyan}', 1 '${hm_clr_1:=magenta}'); set cbtics; ${CCD_NO_CB:+ unset colorbox}"
         plt_cmd="${plt_cmd}, '' using 'x':'y':'z' with filledcurves closed palette" 
         ;;
     h)

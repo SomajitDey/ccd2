@@ -119,6 +119,7 @@ contains
 
         use shared
         use grid_linked_list
+        use ring_nb, only: assert_are_nb_rings
 
         logical, intent(in) :: store_ring_nb ! flag to store ring-ring neighborhood info
         integer :: i, j, l, q

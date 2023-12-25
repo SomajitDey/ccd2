@@ -4,15 +4,14 @@ module voronoi
 contains
 
     ! Constructs periodic Voronoi tesselation for given 2D square system. Takes points and boxsize.
-    ! Outputs neighborlist in a packed form similar to ring_nb_io from module ring_nb.
+    ! Prepares cell-cell neighborlist using module ring_nb.
     ! Optionally, dumps xyfile at provided path for visualization of the Voronoi tesselation using `ccd visual`.
-    subroutine periodic_voronoi(x, y, box, nblist, xyfile)
+    subroutine periodic_voronoi(x, y, box, xyfile)
         use utilities, only: mktemp
         use gnuplot, only: dump_cell_xy
-        use ring_nb, only: pair_to_index
+        use ring_nb, only: reset_ring_nb, assert_are_nb_rings, pack_ring_nb
         double precision, dimension(:), intent(in) :: x, y
         double precision, intent(in) :: box
-        integer, dimension(:), intent(out) :: nblist
         character(len=*), intent(in), optional :: xyfile
         character(len=len('/tmp/tmp.XXXXXXXXXX')) :: pts_in, cells_out, nblist_out
         integer :: point, fd_pts, fd_cells, fd_nblist, fd_xy
@@ -37,20 +36,19 @@ contains
         close (fd_pts, status='delete')
 
         ! Prepare the neighborlist array
+        call reset_ring_nb()
         open (newunit=fd_nblist, file=nblist_out, status='old', action='read')
-        i = 0
         do
-            if (i > size(nblist)) exit
             read (fd_nblist, *, iostat=ios) cell_id, nb_cell_id
             if (is_iostat_end(ios)) then
-                nblist(i) = 0
+                exit
             else if (cell_id > nb_cell_id) then
                 cycle ! Avoids double counting
             else
-                nblist(i) = pair_to_index(cell_id, nb_cell_id)
+                call assert_are_nb_rings(cell_id, nb_cell_id)
             end if
-            i = i + 1
         end do
+        call pack_ring_nb() ! Preps ring_nb_io and coord_num arrays
         close (fd_nblist, status='delete')
 
         ! Prepare xyfile to be used by `ccd visual`, if opted for

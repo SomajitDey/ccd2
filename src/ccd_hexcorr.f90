@@ -1,30 +1,30 @@
 ! Help:Begin
-! Computes pair correlation histogram. Outputs paircorr.xy. User can optionally provide number of bins (default: 1000).
+! Computes orientation correlation (g6) histogram. Outputs hexcorr.xy. User can optionally provide number of bins (default: 1000).
 ! NOTE: This program requires the last checkpoint too.
-! Usage: ccd_paircorr [--records=<begin>:<end>] [<nbins>]
+! Usage: ccd_hexcorr [--records=<begin>:<end>] [--voronoi] [<nbins>]
 ! --records : Pass range of records to work with. Omit either <begin> or <end> to assume default. E.g. --records=3:4
+! --voronoi : Compute hexatic order of periodic Voronoi tesselations derived from the ring/cell centres.
 ! Help:End
 
 ! Ref: Code 8.1 in Allen and Tildesley's book "Computer Simulation of Liquids".
+! Ref: Jami et al., arXiv:2307.09327v2
 
-program ccd_paircorr
+program ccd_hexcorr
     use files
     use utilities, only: cmd_line_opt, cmd_line_arg, int_to_char, help_handler
-!$  use omp_lib, only: omp_get_max_threads
+    use analysis, only: psi_6
+    use voronoi, only: periodic_voronoi
     implicit none
     integer :: pending_steps, current_step, rec_index, begin_rec, end_rec
     character(len=40) :: params_hash
-    character(len=*), parameter :: fname = 'paircorr.xy'
+    character(len=*), parameter :: fname = 'hexcorr.xy'
     character(len=:), allocatable :: nbins_arg, opt_arg
     integer :: nbins_arg_len, opt_arg_len, exitcode
     integer :: fd, nbeads_per_ring, nrings, nbins, l, q, bin
     integer, dimension(:), allocatable :: h
-    double precision :: cm_dx, cm_dy, r, dr, density, factor
-
-    ! Following variables with trailing _ would be threadprivate
-    double precision, dimension(:, :), allocatable :: x_, y_
-    real :: timepoint_
-    double precision, dimension(:), allocatable :: cmx_, cmy_
+    double precision :: cm_dx, cm_dy, r, dr
+    double precision, dimension(:), allocatable :: g6
+    complex, dimension(:), allocatable :: hop ! To hold psi6 for every cell/ring
 
     call help_handler()
 
@@ -43,12 +43,11 @@ program ccd_paircorr
     nbeads_per_ring = size(x, 1)
     nrings = size(x, 2)
     dr = (box/2)/nbins
-    allocate (h(nbins))
+    allocate (h(nbins), g6(nbins))
     h = 0
-    density = nrings/(box*box)
+    g6 = 0.d0
     open (newunit=fd, file=fname, access='sequential', form='formatted', status='replace', &
           action='write')
-    allocate (x_(nbeads_per_ring, nrings), y_(nbeads_per_ring, nrings), cmx_(nrings), cmy_(nrings))
     call open_traj('read', 'old')
 
     ! Sort out the begin and end record number from --records=<from>:<to> cmd line option, if any
@@ -65,43 +64,39 @@ program ccd_paircorr
         deallocate (opt_arg)
     end if
 
-    ! factor below includes all the constants involved in scaling h(k) to get g(r)
-    factor = nrings*(end_rec - begin_rec + 1)*dacos(-1.d0)*density*dr*2
+    timesteps: do rec_index = begin_rec, end_rec
+        call traj_read(rec_index, timepoint)
+        if (cmd_line_flag('--voronoi')) call periodic_voronoi(cmx, cmy, box)
+        hop = psi_6(nrings)
 
-!$  write (err_fd, '(a,1x,i0,1x,a)') 'Using', omp_get_max_threads(), 'OpenMP threads'
-
-!$omp parallel do default(shared) private(rec_index, x_, y_, timepoint_, cmx_, cmy_, cm_dx, cm_dy, r, bin, l, q) &
-!$omp reduction(+: h)
-    do rec_index = begin_rec, end_rec
-        call threadsafe_traj_read_xy_only(rec_index, timepoint_, x_, y_)
-
-        do l = 1, nrings
-            cmx_(l) = sum(x_(:, l))/nbeads_per_ring
-            cmy_(l) = sum(y_(:, l))/nbeads_per_ring
-        end do
-
-        do l = 1, nrings - 1
+        pairs: do l = 1, nrings - 1
             do q = l + 1, nrings
-                cm_dx = cmx_(q) - cmx_(l)
-                cm_dy = cmy_(q) - cmy_(l)
+                cm_dx = cmx(q) - cmx(l)
+                cm_dy = cmy(q) - cmy(l)
                 cm_dx = cm_dx - box*nint(cm_dx/box)
                 cm_dy = cm_dy - box*nint(cm_dy/box)
                 r = hypot(cm_dx, cm_dy)
                 bin = floor(r/dr) + 1
-                if (bin <= nbins) h(bin) = h(bin) + 2
+                if (bin <= nbins) then
+                    g6(bin) = g6(bin) + hop(l)*conjg(hop(q)) + hop(q)*conjg(hop(l))
+                    h(bin) = h(bin) + 2
+                end if
             end do
-        end do
-    end do
-!$omp end parallel do
+        end do pairs
+    end do timesteps
 
-    do bin = 1, nbins
+    bins: do bin = 1, nbins
         r = (bin - 1)*dr + dr/2 ! Mid point of bin
-        write (fd, '(es23.16,1x,es23.16)') r, h(bin)/(factor*r)
-    end do
+        if (h(bin) /= 0) then
+            write (fd, '(es23.16,1x,es23.16)') r, g6(bin)/h(bin)
+        else
+            write (fd, '(es23.16,1x,es23.16)') r, 0.d0
+        end if
+    end do bins
 
     call close_traj()
     close (fd)
     write (err_fd, '(a,1x,es23.16,1x,a,1x,i0,1x,a,1x,i0,":",i0)') &
         'Used: dr =', dr, 'nbins =', nbins, 'records =', begin_rec, end_rec
-    write (err_fd, '(a)') 'Pair correlation g(r) histogram dumped at '//fname
-end program ccd_paircorr
+    write (err_fd, '(a)') 'Orientational correlation g6(r) histogram dumped at '//fname
+end program ccd_hexcorr

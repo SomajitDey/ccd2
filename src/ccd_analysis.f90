@@ -1,7 +1,8 @@
 ! Help:Begin
 ! NOTE: This program requires the metadata, last checkpoint and trajectory. Outputs analysis dump.
-! Usage: ccd_analysis [--records=<begin>:<end>] <metadata file path>
+! Usage: ccd_analysis [--records=<begin>:<end>] [--voronoi] <metadata file path>
 ! --records : Pass range of records to work with. Omit either <begin> or <end> to assume default. E.g. --records=3:4
+! --voronoi : Compute hexatic order of periodic Voronoi tesselations derived from the ring/cell centres.
 ! Help:End
 
 ! To minimize the number of local variables, we shall be using the same variable for storing sum and the desired avg
@@ -9,6 +10,7 @@
 program ccd_analysis
     use analysis
     use utilities, only: cmd_line_opt, cmd_line_arg, help_handler
+    use voronoi, only: periodic_voronoi
     implicit none
 
     character(len=:), allocatable :: metadata_fname, opt_arg
@@ -18,6 +20,8 @@ program ccd_analysis
     double precision :: cell_sd_, cell_area, cell_perim, sum_area, cell_tension
     double precision :: cell_vicsekop_x, cell_vicsekop_y, vicsekop_x, vicsekop_y
     double precision :: cell_major_axis(2), cell_minor_axis(2), cell_nemop_cos_theta
+    complex, dimension(:), allocatable :: hop ! To hold psi6 for every cell/ring
+
 
     call help_handler()
 
@@ -86,7 +90,14 @@ program ccd_analysis
         vicsekop = hypot(vicsekop_x/nrings, vicsekop_y/nrings)
         nemop = 2*(nemop/nrings) - 1.d0
 
-        call psi_6(nrings, hexop1, hexop2)
+    ! hexop1 is from Revalee et al., J. Chem. Phys. 128, 035102 (2008); https://doi.org/10.1063/1.2825300
+    ! hexop2 is from Loewe et al., Phy. Rev. Lett. 125(3):038003, 2020
+    ! Due to triangle law of complex numbers hexop1 and hexop2 may differ a lot.
+    ! hexop1 seems more acceptable to us.
+        if (cmd_line_flag('--voronoi')) call periodic_voronoi(cmx, cmy, box)
+        hop = psi_6(nrings)
+        hexop1 = sum(abs(hop))/nrings
+        hexop2 = abs(sum(hop))/nrings
 
         call dump(rec_index*traj_dump_int, timepoint, &
                   msd, alpha2, shapeind, hexop1, hexop2, vicsekop, areafrac, tension, nemop)
