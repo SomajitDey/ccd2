@@ -93,6 +93,10 @@ ccd clean_archive 'metadata.txt'
 
 - It is also possible to pass run-time parameters using the command-line. These values take precedence over those read in from from `params.in` or `${CCD_PARAMS_PATH}` in case of conflicts. For example,
 ```bash
+ccd -p '<parameterA>=<valueA>; <parameterB>=<valueB>' show_params
+```
+or equivalently,
+```bash
 ccd -p '<parameterA>=<valueA>' -p '<parameterB>=<valueB>' show_params
 ```
 

@@ -12,7 +12,7 @@ sed '1i &params ! Namelist header' <(cat "${CCD_RC_PATH}" "${CCD_PARAMS_PATH}" 2
 ## Parse command line for options
 while getopts :p: opt; do
   case "${opt}" in
-    p) echo "${OPTARG}" >> .params.in;;
+    p) echo "${OPTARG}" | tr ';' '\n' >> .params.in;;
     *) echo "Provided ccd option is not supported. See usage: ccd"; exit 1;;
   esac
 done
