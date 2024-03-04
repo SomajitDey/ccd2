@@ -1,12 +1,10 @@
-[![CI Build Status](https://github.com/PhyBi/Collective-Cell-Dynamics/actions/workflows/build.yml/badge.svg)](https://github.com/PhyBi/Collective-Cell-Dynamics/actions/workflows/build.yml) ![Bash completion](https://img.shields.io/badge/Commandline%20Completion-Enabled-green) ![OS](https://img.shields.io/badge/Platform-Linux%2C%20MacOS(X)%2C%20WSL-blue)
+[![CI Build Status](https://github.com/SomajitDey/ccd2/actions/workflows/build.yml/badge.svg)](https://github.com/SomajitDey/ccd2/actions/workflows/build.yml) ![Bash completion](https://img.shields.io/badge/Commandline%20Completion-Enabled-green) ![OS](https://img.shields.io/badge/Platform-Linux%2C%20MacOS(X)%2C%20WSL-blue)
 
-# Collective Cell Dynamics
-This software contains the simulation engine and analysis tools for the bead-spring model as presented in <u>A. Mkrtchyan, J. Astrom, M. Karttunen, *Soft Matter*, 2014, **10**, 4332</u>. The model may or may not have been modified to suit our needs. Complete Equations of Motion are available [here](/docs/EOM.pdf) subject to availing the license-key from us.
-
-https://github.com/PhyBi/Collective-Cell-Dynamics/assets/73181168/55df1eca-e339-497d-ade9-4b60ade792b6
+# Collective Cell Dynamics 2.0
+This repository contains major changes to our earlier [project](https://github.com/PhyBi/Collective-Cell-Dynamics).
 
 # Status
-Work in progress. Check [TODO](#TODO) list below.
+Work in progress. Unstable and incomplete. Not fit for public use.
 
 # Dependencies
 - [gfortran](https://command-not-found.com/gfortran) or [ifort](https://gist.github.com/SomajitDey/aeb6eb4c8083185e06800e1ece4be1bd)(recommended). Note: ifort is free now, doesn't require a license anymore.
@@ -25,7 +23,7 @@ Work in progress. Check [TODO](#TODO) list below.
 
 - Download this project:
 ```bash
-git clone --depth=1 https://github.com/PhyBi/Collective-Cell-Dynamics ccd
+git clone --depth=1 https://github.com/SomajitDey/ccd2 ccd
 ```
 
 - Change to the downloaded project directory: `cd ccd`
@@ -123,40 +121,7 @@ If the problem persists, rebuild with `make DEBUG=set` and report @ [issue](http
 Also try the `-heap-arrays` compiler flag (`FF`) for ifort in the Makefile.
 
 # License
-No use of this software shall be made without written permission from the PI, [Dr. Dipjyoti Das](mailto:dipjyoti.das@iiserkol.ac.in).
+TBD. In its current state this software is not fit for public use.
 
 # Disclaimer
-Use this software at your own risk. We the devs or this organization/lab/institute or the PI are/is not responsible for any damage caused by the use of this software.
-
-# TODO
-This software is built from a monolithic legacy code. Hence much had and still would have to be done towards enhancements in performance, maintainability, user-interface etc.
-- [x] giving the entire codebase a permanent home online
-- [x] fragmentation and build automation
-- [x] replacing formatted trajectory dump with much faster and more compact unformatted and asynchronous I/O
-- [x] include a parameters input file instead of using hardcoded values
-- [x] replacing component based code with vector notation wherever possible for SIMD
-- [x] remove all GOTO statments
-- [x] making the run trajectory reproducible (at least for serial/single-threaded execution) by storing the PRNG seeds
-- [x] include real-time progress bar
-- [x] include performance calculation and dump
-- [x] establishing separate run modes using command line options
-- [x] replacing long hardcoded I/O paths with short filenames
-- [x] inclusion of logging (at stderr)
-- [x] checkpointing. Checkpoints serve dual purpose - run recovery and initialization
-- [x] command-line autocompletion
-- [x] very basic multithreading using OpenMP
-- [x] continuous integration and git-hooks
-- [x] beads are stored in rows. Store them in columns instead for much performance improvement (as fortran is column major)
-- [x] replace the overcomplicated neighborlist structure with a simple bead-based linked list for decreased overhead
-- [x] replace the array-bound-based implementation of circular boundary conditions of beads within cells for better maintainability 
-- [x] building the cell-cell neighborlist and dumping it in trajectory file in the most compressed way for later analysis such as hexatic order parameter
-- [x] current initialization works only for the hardcoded system size. The fix (which would also make the system size assignable by the user) is ready for deployment but can only come after the neighborlist fix.
-- [x] consistency check for parameters while reading them in (src/mod_parameters.f90)
-- [x] linting
-- [x] performance oriented profiling and polishing
-- [x] enhancing the driver code (`ccd`) as well as the bash-completion script
-- [x] compression and archiving of run results (trajectory etc.). Also provide retrieval and garbage cleaning tools.
-- [x] include -h\|--help for each subcommand using `helpdoc` tool. Detailed [docs](docs/)
-- [x] include analysis tools (legacy or new)
-- [x] include movie making tools : ccd traj_to_xy and ccd movie (gif and mp4)
-- [ ] install signal handlers for dumping progress status
+Use this software at your own risk. The developer(s) is(are) not responsible for any damage caused by the use of this software.
