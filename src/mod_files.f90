@@ -36,7 +36,7 @@ contains
         if (alloc_stat /= 0) error stop 'Fatal: Problem in allocating compressed_fp_for_io'
         !TODO: All error stops should contain the subroutine/module name and variable name
 
-        inquire (iolength=reclen) timepoint, compressed_fp_for_io, ring_nb_io
+        inquire (iolength=reclen) timepoint, compressed_fp_for_io, ring_nb_io, real(poten)
         open (newunit=traj_fd, file=traj_fname, access='direct', recl=reclen, form='unformatted', &
               status=old_or_replace, asynchronous='yes', action=read_or_write, iostat=io_stat)
         if (io_stat /= 0) error stop 'Fatal: Problem with opening '//traj_fname
@@ -51,9 +51,10 @@ contains
         integer :: io_stat, ring, nbeads_per_cell, ncells
         double precision, dimension(size(mx, 1), size(mx, 2)) :: m_norm
         double precision :: gcmx, gcmy ! Global centre of mass
+        real :: poten_real ! Single precision storage for potential energy
 
         read (traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
-            timepoint, compressed_fp_for_io, ring_nb_io
+            timepoint, compressed_fp_for_io, ring_nb_io, poten_real
         if (io_stat /= 0) error stop &
             'Fatal: Problem with reading from '//traj_fname//' @ record= '//int_to_char(recnum)
         call unpack_ring_nb()
@@ -68,6 +69,7 @@ contains
         f_rpy = dble(compressed_fp_for_io(:, :, 8))
         f_adx = dble(compressed_fp_for_io(:, :, 9))
         f_ady = dble(compressed_fp_for_io(:, :, 10))
+        poten = dble(poten_real)
 
         nbeads_per_cell = size(x, 1)
         ncells = size(x, 2)
@@ -126,7 +128,8 @@ contains
         compressed_fp_for_io(:, :, 10) = real(f_ady)
 
         call pack_ring_nb()
-        write (traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) timepoint, compressed_fp_for_io, ring_nb_io
+        write (traj_fd, asynchronous='no', rec=recnum, iostat=io_stat) &
+            timepoint, compressed_fp_for_io, ring_nb_io, real(poten)
         !TODO: asynchronous='yes' above with introduction of wait(traj_fd) and asynchronous attributes for x,y
         if (io_stat /= 0) error stop 'Fatal: Problem with writing to '//traj_fname//' @ record= '//int_to_char(recnum)
     end subroutine traj_write

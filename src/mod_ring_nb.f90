@@ -86,7 +86,7 @@ contains
     ! Also prepare coord_num array.
     subroutine pack_ring_nb()
         integer :: i, num_nb_pairs, l, q
-        
+
         num_nb_pairs = count(ring_nb_pairs == var)
 
         if (size(ring_nb_io) < num_nb_pairs) error stop &
@@ -94,19 +94,19 @@ contains
 
         ring_nb_io = pack(array=[(i, i=1, size(ring_nb_pairs))], mask=ring_nb_pairs == var, &
                           vector=[(0, i=1, size(ring_nb_io))])
-        
+
         coord_num = 0 ! This could be in reset_ring_nb() instead, but it would be less optimal.
-        ! Traverse ring_nb_io to glean coordination number for each ring. 
+        ! Traverse ring_nb_io to glean coordination number for each ring.
         do i = 1, num_nb_pairs
             call index_to_pair(ring_nb_io(i), l, q)
             coord_num(l) = coord_num(l) + 1
             coord_num(q) = coord_num(q) + 1
-        end do        
+        end do
     end subroutine pack_ring_nb
 
     ! Set ring_nb info (i.e. ring_nb_pairs and coord_num) by reading ring_nb_io
     subroutine unpack_ring_nb()
-        integer :: i, valu, l, q 
+        integer :: i, valu, l, q
 
         call reset_ring_nb()
         coord_num = 0 ! This could be in reset_ring_nb() instead, but it would be less optimal.

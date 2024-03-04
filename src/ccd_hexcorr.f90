@@ -1,5 +1,6 @@
 ! Help:Begin
-! Computes orientation correlation (g6) histogram. Outputs hexcorr.xy. User can optionally provide number of bins (default: 1000).
+! Computes orientation correlation (g6) histogram. Outputs hexcorr.xy.
+! User can optionally provide number of bins (default: 1000).
 ! NOTE: This program requires the last checkpoint too.
 ! Usage: ccd_hexcorr [--records=<begin>:<end>] [--voronoi] [<nbins>]
 ! --records : Pass range of records to work with. Omit either <begin> or <end> to assume default. E.g. --records=3:4
@@ -8,6 +9,7 @@
 
 ! Ref: Code 8.1 in Allen and Tildesley's book "Computer Simulation of Liquids".
 ! Ref: Jami et al., arXiv:2307.09327v2
+! Note: Read-in trajectory contains single precision data only. Hence, analysed output is dumped as single precision.
 
 program ccd_hexcorr
     use files
@@ -88,9 +90,9 @@ program ccd_hexcorr
     bins: do bin = 1, nbins
         r = (bin - 1)*dr + dr/2 ! Mid point of bin
         if (h(bin) /= 0) then
-            write (fd, '(es23.16,1x,es23.16)') r, g6(bin)/h(bin)
+            write (fd, '(es15.8,1x,es15.8)') r, g6(bin)/h(bin)
         else
-            write (fd, '(es23.16,1x,es23.16)') r, 0.d0
+            write (fd, '(es15.8,1x,es15.8)') r, 0.d0
         end if
     end do bins
 

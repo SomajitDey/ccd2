@@ -18,5 +18,5 @@ program unit_test
     call open_traj('read', 'old')
     call traj_read(record, timepoint)
     call periodic_voronoi(cmx, cmy, box, 'vor.xy')
-    print*, coord_num
+    print *, coord_num
 end program unit_test

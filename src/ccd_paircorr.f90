@@ -6,6 +6,7 @@
 ! Help:End
 
 ! Ref: Code 8.1 in Allen and Tildesley's book "Computer Simulation of Liquids".
+! Note: Read-in trajectory contains single precision data only. Hence, analysed output is dumped as single precision.
 
 program ccd_paircorr
     use files
@@ -96,7 +97,7 @@ program ccd_paircorr
 
     do bin = 1, nbins
         r = (bin - 1)*dr + dr/2 ! Mid point of bin
-        write (fd, '(es23.16,1x,es23.16)') r, h(bin)/(factor*r)
+        write (fd, '(es15.8,1x,es15.8)') r, h(bin)/(factor*r)
     end do
 
     call close_traj()

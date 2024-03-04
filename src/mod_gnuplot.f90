@@ -18,7 +18,7 @@
 !**Section : An isolated part of the cell. Cells unbroken by folding under PBC have only 1 section which is
 ! confined by a single arc consisting of all the beads in the cell. Cells broken by folding have multiple
 ! sections. Each such section is an area enclosed by one or more arcs and one or more edges of the sim(ulation)
-! box. 
+! box.
 
 !**Virtual bead : To plot a section confined by arc(s) and a box edge, gnuplot needs to plot virtual beads at
 ! points where the cell would intersect the box edge, if the cell was continuous (i.e. before being folded under PBC).
@@ -317,7 +317,7 @@ contains
         end if
     end subroutine virtual_bead
 
-    ! Dump virtual beads, given the bead indices at the extremeties of a confining arc(s) of a section. 
+    ! Dump virtual beads, given the bead indices at the extremeties of a confining arc(s) of a section.
     ! Input: Output file descriptor, folded x y arrays, boxlength and indices of beads (A and B) between which
     ! we need the virtual beads. A and B beads are at extremeties, i.e. Bead A - 1 and B+1 are not in same section
     ! as A and B.

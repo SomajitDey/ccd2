@@ -1,8 +1,9 @@
 ! Help:Begin
 !Brief: Initializes state. Positions are initialized randomly. Motility vectors initialized isotropically by default.
-!Usage: ccd_init [--no-check] [--box=<value> | --box=<scale>%] [--pl0]
+!Usage: ccd_init [--no-check] [--box=<value> | --box=<scale>%] [--minrad=<value>] [--pl0]
 ! -n | --no-check : Do not check parameters for consistency
 ! --box : Provide desired box length. E.g. --box=5.5. Can also provide relative length in percentage. E.g. --box=200%
+! --minrad : Provide minimum initial/seed radius for circular cells. E.g. --minrad=0.004.
 ! --pl0 : Use p*l0 for pressure force when computing equilibrium radius from spring-pressure force balance
 ! Help:End
 

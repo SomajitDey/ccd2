@@ -15,7 +15,8 @@ contains
         double precision :: l1, l2, dx1, dx2, dy1, dy2
         integer :: i_minus_1, i_plus_1
 
-!$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1)
+!$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1) &
+!$omp reduction(+: poten)
         do l = 1, m
             do i = 1, n
 
@@ -37,11 +38,14 @@ contains
 
                 l2 = hypot(dx2, dy2)
 
-                fx(i, l) = k*((l1 - l0)*dx1/l1 - (l2 - l0)*dx2/l2) &
+                fx(i, l) = (k*(l1 - l0) + gamma)*dx1/l1 - (k*(l2 - l0) + gamma)*dx2/l2 &
                            - 0.5d0*p*(dy1 + dy2)
 
-                fy(i, l) = k*((l1 - l0)*dy1/l1 - (l2 - l0)*dy2/l2) &
+                fy(i, l) = (k*(l1 - l0) + gamma)*dy1/l1 - (k*(l2 - l0) + gamma)*dy2/l2 &
                            + 0.5d0*p*(dx1 + dx2)
+
+                poten = poten + 0.5d0*(k*(l1 - l0)**2 - p*(dabs(x(i, l)*y(i_minus_1, l) - x(i_minus_1, l)*y(i, l)))) &
+                        + gamma*l1
             end do
 
             cmx(l) = sum(x(:, l))/n
@@ -64,7 +68,8 @@ contains
         double precision, dimension(size(x, dim=1)) :: f_bead_x, f_bead_y
         double precision :: f_bead_x_avg, f_bead_y_avg
 
-!$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1, f_bead_x,f_bead_y,f_bead_x_avg,f_bead_y_avg)
+!$omp do private(i,l, l1,l2,dx1,dx2,dy1,dy2, i_minus_1,i_plus_1, f_bead_x,f_bead_y,f_bead_x_avg,f_bead_y_avg) &
+!$omp reduction(+: poten)
         do l = 1, m
             f_bead_x_avg = 0.d0
             f_bead_y_avg = 0.d0
@@ -89,15 +94,18 @@ contains
 
                 l2 = hypot(dx2, dy2)
 
-                f_bead_x(i) = k*((l1 - l0)*dx1/l1 - (l2 - l0)*dx2/l2) &
+                f_bead_x(i) = (k*(l1 - l0) + gamma)*dx1/l1 - (k*(l2 - l0) + gamma)*dx2/l2 &
                               - 0.5d0*p*l0*(dy1/l1 + dy2/l2)
 
                 f_bead_x_avg = f_bead_x_avg + f_bead_x(i)
 
-                f_bead_y(i) = k*((l1 - l0)*dy1/l1 - (l2 - l0)*dy2/l2) &
+                f_bead_y(i) = (k*(l1 - l0) + gamma)*dy1/l1 - (k*(l2 - l0) + gamma)*dy2/l2 &
                               + 0.5d0*p*l0*(dx1/l1 + dx2/l2)
 
                 f_bead_y_avg = f_bead_y_avg + f_bead_y(i)
+
+                poten = poten + 0.5d0*(k*(l1 - l0)**2 - p*(dabs(x(i, l)*y(i_minus_1, l) - x(i_minus_1, l)*y(i, l)))) &
+                        + gamma*l1
             end do
 
             f_bead_x_avg = f_bead_x_avg/n
@@ -127,6 +135,7 @@ contains
         double precision :: cm_d, cm_dx, cm_dy, overlap
         integer :: icell, jcell, nabor
         integer :: bead_index, other_bead_index
+        logical :: not_within_same_ring, same_ring_beyond_nrexcl
 
 !$omp do private(l)
         do l = 1, m
@@ -142,8 +151,10 @@ contains
 !$omp do private(i,j,l,q, r,frepx,frepy,dx,dy,fadhx,fadhy,factor, icell,jcell,nabor, bead_index) &
 !$omp private(other_bead_index) &
 !$omp private(cm_d, cm_dx, cm_dy, overlap) &
+!$omp private(not_within_same_ring, same_ring_beyond_nrexcl) &
 !$omp reduction(+: f_rpx, f_rpy) &
-!$omp reduction(+: f_adx, f_ady)
+!$omp reduction(+: f_adx, f_ady) &
+!$omp reduction(+: poten)
         grids: do icell = 1, ncell
             bead_index = bead_nl_head(icell)
 
@@ -162,12 +173,14 @@ contains
                     other_beads_downlist: do
                         if (other_bead_index == 0) exit other_beads_downlist
 
-                        not_within_same_ring: if ((bead_index - 1)/n /= (other_bead_index - 1)/n) then
+                        l = (bead_index - 1)/n + 1 ! Ring index of bead
+                        i = mod((bead_index - 1), n) + 1 ! Intraring serial number of bead
+                        q = (other_bead_index - 1)/n + 1 ! Ring index of other bead
+                        j = mod((other_bead_index - 1), n) + 1 ! Intraring serial number of other bead
+                        not_within_same_ring = (l /= q)
+                        same_ring_beyond_nrexcl = (l == q) .and. (min(abs(i - j), n - abs(i - j)) > nrexcl)
 
-                            l = (bead_index - 1)/n + 1 ! Ring index of bead
-                            i = mod((bead_index - 1), n) + 1 ! Intraring serial number of bead
-                            q = (other_bead_index - 1)/n + 1 ! Ring index of other bead
-                            j = mod((other_bead_index - 1), n) + 1 ! Intraring serial number of other bead
+                        non_bonded: if (not_within_same_ring .or. same_ring_beyond_nrexcl) then
 
                             ! Get position vector joining images of i and j that are nearest to each other
                             dx = x(j, q) - x(i, l)
@@ -178,7 +191,7 @@ contains
 
                             within_cutoff: if (r .lt. rc_adh) then
 
-                                if (store_ring_nb) call assert_are_nb_rings(l, q)
+                                if (not_within_same_ring .and. store_ring_nb) call assert_are_nb_rings(l, q)
 
                                 if (r .lt. rc_rep) then ! Repulsion
 
@@ -199,9 +212,10 @@ contains
                                     factor = k_rep*(r - rc_rep)/r
                                     frepx = factor*dx
                                     frepy = factor*dy
+                                    poten = poten + 0.5d0*k_rep*(r - rc_rep)**2
 
                                     ! In case of imminent overlap, push cells away with extra force
-                                    if (overlap < ovrlp_trshld) then
+                                    if (not_within_same_ring .and. (overlap < ovrlp_trshld)) then
                                         factor = -k_rep*rc_rep/cm_d
                                         frepx = frepx + factor*cm_dx
                                         frepy = frepy + factor*cm_dy
@@ -213,9 +227,18 @@ contains
                                     f_rpy(i, l) = f_rpy(i, l) + frepy
                                     f_rpy(j, q) = f_rpy(j, q) - frepy
 
-                                else ! Adhesion
+                                else if (not_within_same_ring) then ! Adhesion (piecewise linear and continuous)
 
-                                    factor = k_adh*(rc_adh - r)/r
+                                    if (r .lt. rc_rep + (rc_adh - rc_rep)/2) then
+                                        factor = k_adh*(r - rc_rep)/r
+                                        ! Continuous with 0 repulsion at r = rc_rep
+                                        poten = poten + 0.5d0*k_adh*(r - rc_rep)**2
+                                    else
+                                        factor = k_adh*(rc_adh - r)/r
+                                        ! Goes to 0 at r = rc_adh
+                                        poten = poten + 0.5d0*k_adh*(rc_adh - r)**2
+                                    end if
+
                                     fadhx = factor*dx
                                     fadhy = factor*dy
 
@@ -228,7 +251,7 @@ contains
                                 end if
                             end if within_cutoff
 
-                        end if not_within_same_ring
+                        end if non_bonded
 
                         other_bead_index = bead_nl_body(other_bead_index)
                     end do other_beads_downlist

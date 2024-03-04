@@ -22,7 +22,6 @@ program ccd_analysis
     double precision :: cell_major_axis(2), cell_minor_axis(2), cell_nemop_cos_theta
     complex, dimension(:), allocatable :: hop ! To hold psi6 for every cell/ring
 
-
     call help_handler()
 
     ! Get the metadata file path
@@ -90,17 +89,17 @@ program ccd_analysis
         vicsekop = hypot(vicsekop_x/nrings, vicsekop_y/nrings)
         nemop = 2*(nemop/nrings) - 1.d0
 
-    ! hexop1 is from Revalee et al., J. Chem. Phys. 128, 035102 (2008); https://doi.org/10.1063/1.2825300
-    ! hexop2 is from Loewe et al., Phy. Rev. Lett. 125(3):038003, 2020
-    ! Due to triangle law of complex numbers hexop1 and hexop2 may differ a lot.
-    ! hexop1 seems more acceptable to us.
+        ! hexop1 is from Revalee et al., J. Chem. Phys. 128, 035102 (2008); https://doi.org/10.1063/1.2825300
+        ! hexop2 is from Loewe et al., Phy. Rev. Lett. 125(3):038003, 2020
+        ! Due to triangle law of complex numbers hexop1 and hexop2 may differ a lot.
+        ! hexop1 seems more acceptable to us.
         if (cmd_line_flag('--voronoi')) call periodic_voronoi(cmx, cmy, box)
         hop = psi_6(nrings)
         hexop1 = sum(abs(hop))/nrings
         hexop2 = abs(sum(hop))/nrings
 
         call dump(rec_index*traj_dump_int, timepoint, &
-                  msd, alpha2, shapeind, hexop1, hexop2, vicsekop, areafrac, tension, nemop)
+                  msd, alpha2, shapeind, hexop1, hexop2, vicsekop, areafrac, tension, nemop, poten/nrings)
     end do traj_records
 
 end program ccd_analysis

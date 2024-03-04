@@ -9,6 +9,7 @@ module parameters
     double precision, protected :: k = 1.0d0      !  Single cell spring constant
     double precision, protected :: l0 = 0.02d0       !  Single cell natural spring-length
     double precision, protected :: p = 0.25d0       !  Single cell internal hydrostatic pressure coefficient
+    double precision, protected :: gamma = -1.d0     ! Line tension. Given dummy -ve value to identify custom choice
     double precision, protected :: rc_adh = 0.06d0  ! Adhesion interaction cut-off
     double precision, protected :: rc_rep = 0.04d0  ! Repulsion interaction cut-off
     double precision, protected :: ovrlp_trshld = 0.06d0 ! Cell-Cell overlap metric threshold
@@ -18,6 +19,7 @@ module parameters
     double precision, protected :: dt = 0.1d0   ! Integration timestep
     integer, protected :: tau_align = 1000 ! Timescale for Vicsek alignment in multiples of dt
     integer, protected :: tau_noise = 100 ! Timescale for rotational diffusion in multiples of dt
+    integer, protected :: nrexcl = -1 ! Similar to nrexcl in gromacs. Given dummy -ve value to identify custom choice
 
     !!!! RUN LENGTH
     integer, protected :: nsamples = 100  !! No. of Iterations in terms of traj_dump_int
@@ -33,9 +35,9 @@ module parameters
 
     !! END OF USER PARAMETERS
 
-    namelist /params/ c, k, p, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
+    namelist /params/ c, k, p, gamma, l0, rc_adh, rc_rep, k_adh, k_rep, tau_noise, Vo, dt, tau_align, nsamples, n, m
     namelist /params/ traj_dump_int, status_dump_int, cpt_dump_int
-    namelist /params/ ovrlp_trshld
+    namelist /params/ ovrlp_trshld, nrexcl
 
     double precision, protected :: noise_strength = 0.0d0 ! Constant coeff. (rot. diff. related) in noise term
     double precision, protected :: align_strength = 0.0d0 ! Constant coeff. in the Vicsek term
@@ -51,6 +53,11 @@ contains
         open (newunit=fd, file=fname, access='sequential', form='formatted', status='old', action='read', err=100)
         read (fd, nml=params, err=100, end=100)
         close (fd)
+
+        ! If gamma isn't specified by user, use value satisfying Young-Laplace condition for regular n-gon at l=l0
+        if (gamma < 0.d0) gamma = p*l0/(2*dtan(acos(-1.d0)/n))
+        ! If nrexcl isn't specified by user, use a value so that intracellular beads have no non-bonded interaction
+        if (nrexcl < 0) nrexcl = n ! i.e. exclude all the bonds in a cell
 
         if (tau_align /= 0) align_strength = 1.0d0/(tau_align*dt)
         if (tau_noise /= 0) noise_strength = 1.0d0/(tau_noise*dt)
@@ -151,6 +158,8 @@ contains
             write (err_fd, '(a)') '**Fatal: rc_rep > rc_adh. Defeats the purpose of steric and attractive forces'
             fatal = .true.
         end if
+
+        write (err_fd, '(a, 1x, f0.3)') '**Warning: rc_adh/cell_diameter =', rc_adh/(n*l0/pi)
 
         write (err_fd, '(/,a)') 'SPRING CONSTANT AND PRESSURE SCALES:'
 

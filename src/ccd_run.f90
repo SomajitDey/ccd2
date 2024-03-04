@@ -35,6 +35,8 @@ program ccd_run
 
     call timestamp()
 
+    poten = 0.d0 ! Reset potential energy before first evaluation below
+
 !$omp parallel default(shared) private(j1)
     timeseries: do j1 = ji, jf
 
@@ -70,6 +72,7 @@ program ccd_run
         end if traj_dump
 
         timepoint = timepoint + dt ! Update timepoint
+        poten = 0.d0 ! Reset potential energy
 !$omp section
         for_pv: if (mod(j1, status_dump_int) .eq. 0) then
             call status_dump()

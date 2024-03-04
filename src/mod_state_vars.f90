@@ -13,6 +13,7 @@ module state_vars
     integer, dimension(:), allocatable :: prng_seeds ! Stores the state of the P(seudo) R(andom) N(um) G(enerator)
     integer :: recnum = 0 ! Record number the trajectory file is currently positioned at
     real :: timepoint = 0.0 ! Time instant (#steps x dt). No need to store in double precision
+    double precision :: poten ! Potential energy
 
 contains
 
